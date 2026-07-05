@@ -50,7 +50,8 @@ class AuthService extends BaseService {
     return response;
   }
 
-  /// POST `/api/register` — same token persistence as [login].
+  /// POST `/api/register` — saves token and triggers OTP email on the server.
+  /// The token is required for the subsequent `/api/email/verify` call.
   Future<Response> register({
     required String name,
     required String email,
@@ -90,6 +91,42 @@ class AuthService extends BaseService {
       return 'تم إرسال رمز التحقق إلى بريدك الإلكتروني.';
     } on DioException catch (e) {
       throw Exception(_messageFromDio(e, 'فشل إرسال رمز التحقق'));
+    }
+  }
+
+  /// POST `/api/email/verify` — verifies the 6-digit OTP sent after registration.
+  ///
+  /// Requires Bearer auth (token saved during [register]).
+  /// Body: `{ "otp": "123456" }`
+  Future<String> verifyEmail(String otp) async {
+    try {
+      final response = await dio.post(
+        'email/verify',
+        data: {'otp': otp},
+      );
+      final data = response.data;
+      if (data is Map && data['message'] != null) {
+        return data['message'].toString();
+      }
+      return 'تم التحقق من البريد الإلكتروني بنجاح!';
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e, 'فشل التحقق من رمز OTP'));
+    }
+  }
+
+  /// POST `/api/email/resend` — resends the email verification OTP.
+  ///
+  /// Requires Bearer auth. Throttled to 6 requests per minute on the server.
+  Future<String> resendVerificationEmail() async {
+    try {
+      final response = await dio.post('email/resend');
+      final data = response.data;
+      if (data is Map && data['message'] != null) {
+        return data['message'].toString();
+      }
+      return 'تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.';
+    } on DioException catch (e) {
+      throw Exception(_messageFromDio(e, 'فشل إعادة إرسال رمز التحقق'));
     }
   }
 

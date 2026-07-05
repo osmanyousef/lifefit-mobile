@@ -4,7 +4,15 @@ import '../../../core/services/auth_service.dart';
 import '../../../core/ui/app_colors.dart';
 import 'widgets/auth_widgets.dart';
 
-/// Two-step password reset: request OTP by email, then set a new password.
+/// Two-step password reset screen.
+///
+/// Flow:
+/// 1. User enters email → POST /api/forgot-password → backend sends 6-digit OTP.
+/// 2. User enters OTP + new password → POST /api/reset-password.
+/// 3. On success, pops back to [LoginScreen].
+///
+/// Uses [AuthService] directly (not [authProvider]) because the user is
+/// unauthenticated — no Bearer token is available during password reset.
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -14,6 +22,8 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  /// Standalone service — this flow does not require an auth token.
   final _auth = AuthService();
 
   final _emailController = TextEditingController();
@@ -21,10 +31,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
 
+  /// 1 = request OTP by email, 2 = enter OTP + new password.
   int _step = 1;
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
+
+  /// Local error/success messages (not managed by authProvider).
   String? _errorMessage;
   String? _successMessage;
 
@@ -37,6 +50,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.dispose();
   }
 
+  /// Resets feedback messages before a new API attempt.
   void _clearMessages() {
     setState(() {
       _errorMessage = null;
@@ -44,6 +58,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
   }
 
+  /// Step 1: sends OTP to the given email via POST /api/forgot-password.
   Future<void> _sendOtp() async {
     if (!_formKey.currentState!.validate()) return;
     _clearMessages();
@@ -56,6 +71,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         _successMessage = message;
         _isLoading = false;
       });
+      // Brief pause so the user sees the success message before step 2.
       await Future<void>.delayed(const Duration(milliseconds: 1500));
       if (!mounted) return;
       setState(() {
@@ -71,6 +87,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     }
   }
 
+  /// Step 2: verifies OTP and sets the new password via POST /api/reset-password.
   Future<void> _resetPassword() async {
     if (!_formKey.currentState!.validate()) return;
     _clearMessages();
@@ -88,6 +105,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         _successMessage = message;
         _isLoading = false;
       });
+      // Show success message, then return to login.
       await Future<void>.delayed(const Duration(seconds: 2));
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -115,6 +133,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
+  /// Step 1 UI: email input and "send OTP" button.
   List<Widget> _buildStep1() {
     return [
       const AuthHeader(
@@ -155,6 +174,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     ];
   }
 
+  /// Step 2 UI: OTP, new password, confirm password, and reset button.
   List<Widget> _buildStep2() {
     final email = _emailController.text.trim();
     return [
@@ -218,6 +238,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         onPressed: _resetPassword,
       ),
       const SizedBox(height: 8),
+      // Allow going back to step 1 if the user entered the wrong email.
       Align(
         alignment: Alignment.center,
         child: TextButton(

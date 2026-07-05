@@ -3,14 +3,25 @@ import '../../../../core/ui/app_colors.dart';
 import '../../../../core/ui/widgets/fitlife_logo.dart';
 import '../../../../core/ui/widgets/fitlife_wave_background.dart';
 
-/// Shared palette for login / register screens.
+/// Shared UI building blocks for all auth screens in this module.
+///
+/// Used by: [LoginScreen], [RegisterScreen], [ForgotPasswordScreen].
+/// Keeps layout, colors, and form styling consistent across login flows.
+
+/// Local color tokens for auth screens (separate from global [AppColors]).
 abstract final class AuthColors {
   static const navy = Color(0xFF1E293B);
   static const muted = Color(0xFF64748B);
   static const border = Color(0xFFE2E8F0);
 }
 
-/// Scaffold wrapper with wave background, scroll, and centered form layout.
+/// Full-screen scaffold wrapper shared by every auth screen.
+///
+/// Provides:
+/// - Wave background ([FitLifeAuthBackground])
+/// - Scrollable, centered form (max width 400)
+/// - Tap-outside to dismiss keyboard
+/// - [Form] with the given [formKey] for validation
 class AuthScreenLayout extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final List<Widget> children;
@@ -26,6 +37,7 @@ class AuthScreenLayout extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       body: GestureDetector(
+        // Dismiss keyboard when tapping outside input fields.
         onTap: () => FocusScope.of(context).unfocus(),
         child: FitLifeAuthBackground(
           child: SafeArea(
@@ -51,7 +63,7 @@ class AuthScreenLayout extends StatelessWidget {
   }
 }
 
-/// Logo header with RTL title and subtitle.
+/// Top section of every auth screen: logo + RTL title and subtitle.
 class AuthHeader extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -76,6 +88,7 @@ class AuthHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 24),
+        // Force RTL for Arabic title/subtitle regardless of system locale.
         Directionality(
           textDirection: TextDirection.rtl,
           child: Column(
@@ -109,7 +122,9 @@ class AuthHeader extends StatelessWidget {
   }
 }
 
-/// Styled text field used across auth forms.
+/// Styled [TextFormField] used across all auth forms.
+///
+/// Supports optional password mode with a visibility toggle icon.
 class AuthTextField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
@@ -178,7 +193,9 @@ class AuthTextField extends StatelessWidget {
   }
 }
 
-/// Gradient primary CTA — disabled while loading.
+/// Primary call-to-action button with gradient background.
+///
+/// Shows a loading spinner and disables tap while [isLoading] is true.
 class AuthPrimaryButton extends StatelessWidget {
   final String label;
   final bool isLoading;
@@ -241,7 +258,11 @@ class AuthPrimaryButton extends StatelessWidget {
   }
 }
 
-/// Centered auth error message from [authProvider].
+/// Displays a centered red error message below the form fields.
+///
+/// Returns [SizedBox.shrink] when [message] is null — safe to always include.
+/// Used with [authProvider] errors on login/register, or local errors on
+/// [ForgotPasswordScreen].
 class AuthErrorMessage extends StatelessWidget {
   final String? message;
   final EdgeInsetsGeometry padding;
@@ -270,7 +291,9 @@ class AuthErrorMessage extends StatelessWidget {
   }
 }
 
-/// Divider with social-login label and provider buttons.
+/// Optional social-login section (Google / Apple).
+///
+/// Currently unused — kept for future OAuth integration.
 class AuthSocialSection extends StatelessWidget {
   const AuthSocialSection({super.key});
 
@@ -309,7 +332,7 @@ class AuthSocialSection extends StatelessWidget {
   }
 }
 
-/// Outlined icon button for third-party sign-in.
+/// Outlined icon button for a third-party sign-in provider.
 class AuthSocialButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onPressed;
@@ -338,7 +361,9 @@ class AuthSocialButton extends StatelessWidget {
   }
 }
 
-/// Footer prompt with action link (e.g. switch between login / register).
+/// Bottom footer with a prompt text and a tappable action link.
+///
+/// Examples: "Already have an account? Sign in" / "No account? Register".
 class AuthFooterLink extends StatelessWidget {
   final String prompt;
   final String actionLabel;

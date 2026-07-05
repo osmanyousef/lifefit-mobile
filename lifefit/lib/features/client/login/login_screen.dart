@@ -8,7 +8,14 @@ import 'register_screen.dart';
 import 'widgets/auth_widgets.dart';
 
 /// Client sign-in screen.
-/// Data flow: form → authProvider.login → AppEntry (handled by parent router).
+///
+/// Flow:
+/// 1. User enters email + password.
+/// 2. [_onLogin] validates the form and calls [AuthNotifier.login].
+/// 3. On success, [AppEntry] (the parent router) detects `authState.user != null`
+///    and automatically switches to home — no manual navigation needed here.
+///
+/// Related screens: [RegisterScreen], [ForgotPasswordScreen].
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -20,6 +27,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  /// Toggles password visibility in the password field.
   bool _obscurePassword = true;
 
   @override
@@ -29,7 +38,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  /// Validates form then delegates credentials to [authProvider].
+  /// Validates the form, then delegates credentials to [authProvider].
+  /// Errors are displayed via [AuthErrorMessage] from [authState.errorMessage].
   void _onLogin() {
     if (!_formKey.currentState!.validate()) return;
     ref.read(authProvider.notifier).login(
@@ -40,6 +50,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Rebuild when login loading state or error message changes.
     final authState = ref.watch(authProvider);
 
     return AuthScreenLayout(
@@ -69,6 +80,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           validator: (v) =>
               (v == null || v.length < 8) ? '8 أحرف على الأقل' : null,
         ),
+        // Link to the two-step password reset flow (OTP + new password).
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
@@ -92,6 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           isLoading: authState.isLoading,
           onPressed: _onLogin,
         ),
+        // Social login — disabled until OAuth providers are wired up.
         // const AuthSocialSection(),
         AuthFooterLink(
           prompt: 'ليس لديك حساب؟',
