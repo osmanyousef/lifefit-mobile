@@ -116,7 +116,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           isLoading: authState.isLoading,
           onPressed: _onRegister,
         ),
-        const AuthSocialSection(),
+       
         AuthFooterLink(
           prompt: 'لديك حساب بالفعل؟',
           actionLabel: 'سجل دخولك',
