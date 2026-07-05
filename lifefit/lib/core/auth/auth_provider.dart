@@ -29,6 +29,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       final user = await _auth.fetchCurrentUser();
+      if (!user.canUseClientApp) {
+        await TokenStorage.deleteToken();
+        state = state.copyWith(
+          isInitializing: false,
+          isLoading: false,
+          clearUser: true,
+        );
+        return;
+      }
       state = state.copyWith(user: user, isInitializing: false, isLoading: false);
     } catch (_) {
       // Stale or invalid token — clear storage so the user is sent to login.
@@ -71,6 +80,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final response = await _auth.login(email, password);
       final user = User.fromJson(response.data['user']);
+
+      if (!user.canUseClientApp) {
+        await _auth.logout();
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage:
+              'هذا التطبيق مخصص للعملاء فقط. يرجى استخدام تطبيق المدرب أو لوحة التحكم.',
+        );
+        return;
+      }
 
       state = state.copyWith(
         user: user,

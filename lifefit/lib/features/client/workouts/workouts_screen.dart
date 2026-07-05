@@ -4,48 +4,78 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/models/workout/today_schedule.dart';
 import '../../../core/models/workout/exercise.dart';
+import '../subscription/subscription_provider.dart';
+import '../subscription/trainers_screen.dart';
 import 'workout_provider.dart';
 import 'workout_detail_screen.dart';
 import 'exercise_thumbnail.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Workouts module — today's scheduled workouts and exercise list.
+// ─────────────────────────────────────────────────────────────────────────────
+
 const Color _primary = AppColors.primary;
 const Color _bg = AppColors.background;
 
+/// Home tab screen listing all workouts scheduled for today.
+///
+/// Flow:
+/// 1. Watches [todaySchedulesProvider] for async load / error / data states.
+/// 2. Shows summary progress, then one section per [TodaySchedule].
+/// 3. Tapping an exercise opens [WorkoutDetailScreen].
+///
+/// Empty state: no schedules → rest-day view with refresh.
 class WorkoutsScreen extends ConsumerWidget {
   const WorkoutsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final schedulesAsync = ref.watch(todaySchedulesProvider);
+    final expertsAsync = ref.watch(expertsProvider);
+
+    final hasTrainerSubscription = expertsAsync.maybeWhen(
+      data: (experts) =>
+          experts.any((e) => e.role == 'trainer' && e.isSubscribed),
+      orElse: () => null,
+    );
 
     return Scaffold(
       backgroundColor: _bg,
-      body: schedulesAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: _primary),
-        ),
-        error: (error, _) => _ErrorView(
-          message: error.toString().replaceFirst('Exception: ', ''),
-          onRetry: () => ref.read(todaySchedulesProvider.notifier).refresh(),
-        ),
-        data: (schedules) {
-          if (schedules.isEmpty) {
-            return _RestDayView(
-              onRefresh: () =>
-                  ref.read(todaySchedulesProvider.notifier).refresh(),
-            );
-          }
-          return _WorkoutsList(
-            schedules: schedules,
-            onRefresh: () =>
-                ref.read(todaySchedulesProvider.notifier).refresh(),
-          );
-        },
-      ),
+      body: hasTrainerSubscription == false
+          ? _NoSubscriptionView(
+              onBrowseTrainers: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TrainersScreen()),
+              ),
+            )
+          : schedulesAsync.when(
+              loading: () => const Center(
+                child: CircularProgressIndicator(color: _primary),
+              ),
+              error: (error, _) => _ErrorView(
+                message: error.toString().replaceFirst('Exception: ', ''),
+                onRetry: () =>
+                    ref.read(todaySchedulesProvider.notifier).refresh(),
+              ),
+              data: (schedules) {
+                if (schedules.isEmpty) {
+                  return _RestDayView(
+                    onRefresh: () =>
+                        ref.read(todaySchedulesProvider.notifier).refresh(),
+                  );
+                }
+                return _WorkoutsList(
+                  schedules: schedules,
+                  onRefresh: () =>
+                      ref.read(todaySchedulesProvider.notifier).refresh(),
+                );
+              },
+            ),
     );
   }
 }
 
+/// Scrollable list of today's workout sections with pull-to-refresh.
 class _WorkoutsList extends StatelessWidget {
   final List<TodaySchedule> schedules;
   final Future<void> Function() onRefresh;
@@ -58,6 +88,8 @@ class _WorkoutsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = DateFormat('EEEE، d MMMM', 'ar').format(DateTime.now());
+
+    // Aggregate completion across all schedules for the summary card.
     var totalExercises = 0;
     var doneExercises = 0;
     for (final s in schedules) {
@@ -180,6 +212,7 @@ class _WorkoutsList extends StatelessWidget {
   }
 }
 
+/// Gradient card showing today's exercise completion progress.
 class _WorkoutsSummaryCard extends StatelessWidget {
   final int done;
   final int total;
@@ -281,6 +314,7 @@ class _WorkoutsSummaryCard extends StatelessWidget {
   }
 }
 
+/// Section title for one workout within today's list (name + done/total).
 class _WorkoutSectionHeader extends StatelessWidget {
   final TodaySchedule schedule;
 
@@ -332,6 +366,7 @@ class _WorkoutSectionHeader extends StatelessWidget {
   }
 }
 
+/// Tappable row for a single exercise — navigates to [WorkoutDetailScreen].
 class _WorkoutExerciseCard extends StatelessWidget {
   final TodaySchedule schedule;
   final Exercise exercise;
@@ -448,6 +483,7 @@ class _WorkoutExerciseCard extends StatelessWidget {
   }
 
   Widget _chip(String text, Color bg, Color fg) {
+    // Small prescription badge (sets, reps, intensity).
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
@@ -466,6 +502,7 @@ class _WorkoutExerciseCard extends StatelessWidget {
   }
 }
 
+/// Circular icon indicating whether the exercise has been logged.
 class _ExerciseStatusIcon extends StatelessWidget {
   final bool isDone;
 
@@ -504,6 +541,73 @@ class _ExerciseStatusIcon extends StatelessWidget {
   }
 }
 
+/// Shown when the client has no active subscription with a trainer.
+class _NoSubscriptionView extends StatelessWidget {
+  final VoidCallback onBrowseTrainers;
+
+  const _NoSubscriptionView({required this.onBrowseTrainers});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: _primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.card_membership_outlined,
+                size: 60,
+                color: _primary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'ليس لديك اشتراك',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'لا يوجد اشتراك نشط مع أي مدرب.\nاشترك مع مدرب للحصول على تمارينك اليومية.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.6),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onBrowseTrainers,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primary,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+                elevation: 0,
+              ),
+              icon: const Icon(Icons.search),
+              label: const Text(
+                'تصفح المدربين',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when [todaySchedulesProvider] returns an empty list.
 class _RestDayView extends StatelessWidget {
   final VoidCallback onRefresh;
 
@@ -540,7 +644,7 @@ class _RestDayView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'لا توجد تمارين مجدولة لليوم.\nعضلاتك تحتاج للراحة لتنمو بشكل أفضل.',
+              'لا توجد تمارين مجدولة لليوم.\nراجع مدربك للحصول على تمارين جديدة',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.6),
             ),
@@ -569,6 +673,7 @@ class _RestDayView extends StatelessWidget {
   }
 }
 
+/// Shown when [todaySchedulesProvider] is in error state.
 class _ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;

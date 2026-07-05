@@ -3,7 +3,14 @@ import '../../../core/models/workout/today_schedule.dart';
 import '../../../core/models/workout/exercise_log.dart';
 import '../../../core/services/workout_service.dart';
 
-/// Manages the state and operations for today's workout schedules.
+// ─────────────────────────────────────────────────────────────────────────────
+// workout_provider — Riverpod state for today's workout schedules.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Fetches, caches, and updates today's workout schedules.
+///
+/// Consumed by [WorkoutsScreen], [WorkoutDetailScreen], and [WorkoutLogScreen]
+/// via [todaySchedulesProvider].
 class TodaySchedulesNotifier
     extends StateNotifier<AsyncValue<List<TodaySchedule>>> {
   final WorkoutService _service;
@@ -12,7 +19,7 @@ class TodaySchedulesNotifier
     fetch();
   }
 
-  /// Fetches today's schedules from the backend.
+  /// GET today's schedules — called on provider init and pull-to-refresh.
   Future<void> fetch() async {
     state = const AsyncValue.loading();
     try {
@@ -23,10 +30,14 @@ class TodaySchedulesNotifier
     }
   }
 
-  /// Reloads schedules.
+  /// Alias for [fetch] — used by RefreshIndicator and retry buttons.
   Future<void> refresh() => fetch();
 
-  /// Saves workout logs for a specific schedule and updates local state.
+  /// POST exercise logs for one schedule and patch local state.
+  ///
+  /// Returns `true` on success. Merges [exerciseLogs] server-side; the
+  /// response may omit nested exercises, so we preserve [TodaySchedule.workout]
+  /// from the cached item and only update status + workoutLog.
   Future<bool> saveWorkoutLog({
     required int scheduleId,
     required List<ExerciseLog> exerciseLogs,
@@ -44,8 +55,7 @@ class TodaySchedulesNotifier
       state.whenData((schedules) {
         final newList = schedules.map((s) {
           if (s.scheduleId != updated.scheduleId) return s;
-          // The API response does not load workout.exercises, so we preserve
-          // the original workout (with exercises) and only patch status + log.
+          // API response lacks workout.exercises — keep the cached workout tree.
           return TodaySchedule(
             scheduleId: s.scheduleId,
             status: updated.status,
@@ -63,7 +73,7 @@ class TodaySchedulesNotifier
   }
 }
 
-/// Provider to access the TodaySchedulesNotifier and its state.
+/// Global provider — watch with `ref.watch(todaySchedulesProvider)`.
 final todaySchedulesProvider = StateNotifierProvider<TodaySchedulesNotifier,
     AsyncValue<List<TodaySchedule>>>((ref) {
   return TodaySchedulesNotifier(WorkoutService());

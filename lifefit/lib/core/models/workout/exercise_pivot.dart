@@ -1,3 +1,5 @@
+import '../../utils/workout_duration_utils.dart';
+
 /// Laravel `workout_exercise` pivot: prescription for one exercise inside a workout.
 class ExercisePivot {
   final int sets;
@@ -102,9 +104,9 @@ class ExercisePivot {
       case 'rpe':
         return rpeTarget != null ? 'RPE $rpeTarget' : '—';
       case 'time':
-        return targetDurationSeconds != null
-            ? '$targetDurationSeconds ث'
-            : '—';
+        return WorkoutDurationUtils.formatMinutesFromSeconds(
+          targetDurationSeconds,
+        );
       default:
         return formatWeight(targetWeight);
     }

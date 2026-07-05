@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/ui/app_colors.dart';
 import '../../../core/ui/widgets/app_network_image.dart';
+import '../../../core/utils/workout_duration_utils.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/workout/today_schedule.dart';
@@ -10,6 +11,18 @@ import 'exercise_video_card.dart';
 import 'workout_log_screen.dart';
 import 'workout_provider.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// WorkoutDetailScreen — exercise info + navigation to logging.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Read-only exercise detail view for a single item in today's schedule.
+///
+/// Flow:
+/// 1. Shows image, optional video, description, and pivot prescription
+///    (sets, reps, intensity, rest — durations shown in minutes via
+///    [WorkoutDurationUtils]).
+/// 2. Watches [todaySchedulesProvider] so completion badge stays in sync.
+/// 3. CTA opens [WorkoutLogScreen] to record or update set logs.
 class WorkoutDetailScreen extends ConsumerWidget {
   final TodaySchedule schedule;
   final Exercise exercise;
@@ -22,7 +35,8 @@ class WorkoutDetailScreen extends ConsumerWidget {
 
   static const _primary = AppColors.primary;
 
-  /// Retrieves the latest state of the schedule from the provider.
+  /// Returns the freshest copy of [schedule] from the provider (includes logs).
+  /// Falls back to the constructor argument if not found in cache.
   TodaySchedule _liveSchedule(WidgetRef ref) {
     final list = ref.watch(todaySchedulesProvider).valueOrNull;
     if (list != null) {
@@ -114,7 +128,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             if (pivot != null) ...[
-              // Training details.
+              // Prescription cards: reps/sets, intensity target, rest time.
               Row(children: [
                 Expanded(
                     child: _detailCard('العدات', pivot.reps, Icons.repeat)),
@@ -133,11 +147,15 @@ class WorkoutDetailScreen extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                     child: _detailCard(
-                        'الراحة', '${pivot.restSeconds ?? 60} ثانية', Icons.timer)),
+                        'الراحة',
+                        WorkoutDurationUtils.formatMinutesFromSeconds(
+                          pivot.restSeconds ?? 60,
+                        ),
+                        Icons.timer)),
               ]),
             ],
             const SizedBox(height: 40),
-            // Status badge.
+            // Shown when at least one set log exists for this exercise.
             if (isDone)
               Center(
                 child: Container(
@@ -231,7 +249,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
   }
 
   Widget _detailCard(String label, String value, IconData icon) {
-    // Small info card.
+    // Compact stat card used in the 2×2 prescription grid.
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
@@ -259,6 +277,7 @@ class WorkoutDetailScreen extends ConsumerWidget {
     );
   }
 
+  /// Icon matching the pivot's intensity type (weight / % / RPE / time).
   IconData _intensityIcon(ExercisePivot pivot) {
     switch (pivot.effectiveIntensityType) {
       case 'percentage':

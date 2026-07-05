@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/ui/app_colors.dart';
+import '../../../core/utils/workout_duration_utils.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/workout/today_schedule.dart';
@@ -9,7 +10,22 @@ import '../../../core/models/workout/exercise_log.dart';
 import '../../../core/models/workout/exercise_pivot.dart';
 import 'workout_provider.dart';
 
-/// Screen for logging user performance per set based on exercise intensity type.
+// ─────────────────────────────────────────────────────────────────────────────
+// WorkoutLogScreen — per-set performance logging.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Logs actual performance for each set of an exercise.
+///
+/// Flow:
+/// 1. Builds one [_SetFields] row per prescribed set, pre-filled from
+///    existing logs or pivot targets.
+/// 2. Input fields adapt to [ExercisePivot.effectiveIntensityType]:
+///    `weight` | `percentage` | `rpe` | `time`.
+/// 3. On save, merges this exercise's logs with others on the same schedule
+///    and posts via [TodaySchedulesNotifier.saveWorkoutLog].
+///
+/// Duration note: users enter **minutes**; [WorkoutDurationUtils] converts
+/// to seconds before sending to the API.
 class WorkoutLogScreen extends ConsumerStatefulWidget {
   final TodaySchedule schedule;
   final Exercise exercise;
@@ -25,9 +41,15 @@ class WorkoutLogScreen extends ConsumerStatefulWidget {
 }
 
 class _WorkoutLogScreenState extends ConsumerState<WorkoutLogScreen> {
+  /// One form row per prescribed set (controllers + target values).
   late List<_SetFields> _sets;
+
+  /// Drives which input widgets are shown — mirrors pivot intensity type.
   late String _intensityType;
+
   bool _isSubmitting = false;
+
+  /// Local countdown between sets; uses seconds internally for precision.
   Timer? _restTimer;
   int _restRemaining = 60;
   bool _restRunning = false;
@@ -51,6 +73,7 @@ class _WorkoutLogScreenState extends ConsumerState<WorkoutLogScreen> {
         []
       ..sort((a, b) => a.setNumber.compareTo(b.setNumber));
 
+    // Pre-fill from saved logs when re-editing; otherwise use pivot targets.
     _sets = List.generate(count, (index) {
       final existing =
           index < existingLogs.length ? existingLogs[index] : null;
@@ -71,6 +94,7 @@ class _WorkoutLogScreenState extends ConsumerState<WorkoutLogScreen> {
     super.dispose();
   }
 
+  /// Starts a local rest countdown using [ExercisePivot.restSeconds].
   void _startRestTimer() {
     _restTimer?.cancel();
     final restSec = _pivot?.restSeconds ?? 60;
@@ -88,6 +112,7 @@ class _WorkoutLogScreenState extends ConsumerState<WorkoutLogScreen> {
     });
   }
 
+  /// Reads the latest schedule from provider so we don't overwrite other exercises' logs.
   TodaySchedule _scheduleForSubmit() {
     final list = ref.read(todaySchedulesProvider).valueOrNull;
     if (list != null) {
@@ -98,6 +123,7 @@ class _WorkoutLogScreenState extends ConsumerState<WorkoutLogScreen> {
     return widget.schedule;
   }
 
+  /// Builds [ExerciseLog] list for this exercise and POSTs the merged schedule log.
   Future<void> _submitLog() async {
     if (_isSubmitting) return;
     FocusScope.of(context).unfocus();
@@ -145,6 +171,7 @@ class _WorkoutLogScreenState extends ConsumerState<WorkoutLogScreen> {
     }
   }
 
+  /// Maps form fields → [ExerciseLog] based on [_intensityType].
   ExerciseLog _buildExerciseLog(
     _SetFields set,
     int setNumber,
@@ -179,8 +206,11 @@ class _WorkoutLogScreenState extends ConsumerState<WorkoutLogScreen> {
           exerciseId: _exercise.id,
           setNumber: setNumber,
           targetDurationSeconds: set.targetDurationSeconds,
-          actualDurationSeconds:
-              _intFrom(set.durationCtrl.text, set.targetDurationSeconds),
+          // User enters minutes; backend expects seconds.
+          actualDurationSeconds: WorkoutDurationUtils.minutesInputToSeconds(
+            set.durationCtrl.text,
+            set.targetDurationSeconds,
+          ),
           intensityType: 'time',
           notes: _notesFrom(set),
         );
@@ -324,6 +354,7 @@ class _WorkoutLogScreenState extends ConsumerState<WorkoutLogScreen> {
   }
 
   Widget _buildRestTimer() {
+    // Countdown display stays mm:ss for precise rest timing.
     final mm = (_restRemaining ~/ 60).toString().padLeft(2, '0');
     final ss = (_restRemaining % 60).toString().padLeft(2, '0');
 
@@ -343,7 +374,8 @@ class _WorkoutLogScreenState extends ConsumerState<WorkoutLogScreen> {
               const Text('مؤقت الراحة',
                   style: TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),
-              Text('${_pivot?.restSeconds ?? 60} ثانية للراحة',
+              Text(
+                  '${WorkoutDurationUtils.formatMinutesFromSeconds(_pivot?.restSeconds ?? 60)} للراحة',
                   style: const TextStyle(color: Colors.grey, fontSize: 12)),
             ],
           ),
@@ -414,6 +446,7 @@ class _WorkoutLogScreenState extends ConsumerState<WorkoutLogScreen> {
     );
   }
 
+  /// Renders the correct input fields for the current intensity type.
   List<Widget> _buildSetInputs(_SetFields s) {
     switch (_intensityType) {
       case 'percentage':
@@ -466,7 +499,7 @@ class _WorkoutLogScreenState extends ConsumerState<WorkoutLogScreen> {
             controller: s.durationCtrl,
             textAlign: TextAlign.center,
             keyboardType: TextInputType.number,
-            decoration: _inputDeco('المدة (ثانية)'),
+            decoration: _inputDeco('المدة (دقيقة)'),
           ),
         ];
       default:
@@ -517,8 +550,14 @@ class _WorkoutLogScreenState extends ConsumerState<WorkoutLogScreen> {
       );
 }
 
+/// Holds controllers and target values for a single set row.
+///
+/// Targets come from [ExercisePivot] (trainer prescription) or an existing
+/// [ExerciseLog] when the user is editing a previous entry.
 class _SetFields {
   final String intensityType;
+
+  // Target values from pivot / existing log (seconds for duration).
   final int? targetReps;
   final double? targetWeight;
   final int? targetPercentage;
@@ -552,6 +591,7 @@ class _SetFields {
     ExercisePivot? pivot,
     ExerciseLog? existing,
   }) {
+    // Time-based exercises have no rep target — only duration.
     final targetReps = intensityType == 'time'
         ? null
         : _parseFirstIntStatic(pivot?.reps ?? existing?.targetReps?.toString());
@@ -580,8 +620,10 @@ class _SetFields {
         text: _textOrEmpty(existing?.actualPercentage ?? targetPercentage),
       ),
       durationCtrl: TextEditingController(
-        text: _textOrEmpty(
-            existing?.actualDurationSeconds ?? targetDurationSeconds),
+        // Display minutes in the field; stored as seconds on the backend.
+        text: _textOrEmpty(WorkoutDurationUtils.secondsToMinutes(
+          existing?.actualDurationSeconds ?? targetDurationSeconds,
+        )),
       ),
       rpeCtrl: TextEditingController(
         text: _textOrEmpty(existing?.rpe ?? rpeTarget),
@@ -590,6 +632,7 @@ class _SetFields {
     );
   }
 
+  /// One-line target summary shown in the set card header.
   String get targetSummary {
     switch (intensityType) {
       case 'percentage':
@@ -597,7 +640,9 @@ class _SetFields {
       case 'rpe':
         return '${targetReps ?? "--"} عدات | RPE ${rpeTarget ?? "--"}';
       case 'time':
-        return '${targetDurationSeconds ?? "--"} ث';
+        return WorkoutDurationUtils.formatMinutesFromSeconds(
+          targetDurationSeconds,
+        );
       default:
         return '${targetReps ?? "--"} | ${ExercisePivot.formatWeight(targetWeight)}';
     }

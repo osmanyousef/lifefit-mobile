@@ -33,6 +33,9 @@ class User {
 
   bool get isEmailVerified => emailVerifiedAt != null;
 
+  /// Only [role] == `client` may use the client mobile app.
+  bool get canUseClientApp => role == 'client';
+
   /// Prefer this in UI over [avatar].
   String? get displayAvatarUrl {
     final url = _normalizeAvatarUrl(avatarUrl);

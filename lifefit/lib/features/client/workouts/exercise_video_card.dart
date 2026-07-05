@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/ui/app_colors.dart';
 
-/// Opens [videoUrl] in the browser / external player — no autoplay in-app.
+/// External video link card shown on [WorkoutDetailScreen].
+///
+/// Opens [videoUrl] in the device's browser or YouTube app via
+/// [launchUrl] — no in-app video player to keep the bundle light.
 class ExerciseVideoCard extends StatelessWidget {
   final String videoUrl;
   final Color primary;
@@ -13,6 +16,7 @@ class ExerciseVideoCard extends StatelessWidget {
     this.primary = AppColors.primary,
   });
 
+  /// Parses the URL and launches it externally; shows a SnackBar on failure.
   Future<void> _open(BuildContext context) async {
     final uri = Uri.tryParse(videoUrl);
     if (uri == null) {
@@ -53,7 +57,6 @@ class ExerciseVideoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Card header.
           Row(
             children: [
               Icon(Icons.play_circle_filled_rounded, color: primary, size: 28),
@@ -71,7 +74,6 @@ class ExerciseVideoCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // Open video action.
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
