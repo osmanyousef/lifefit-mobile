@@ -11,8 +11,6 @@ class MacrosSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate remaining calories and progress percentage
-    final remaining = (data.totalTargetCalories - data.totalConsumedCalories).clamp(0, double.infinity);
     final calProgress = data.totalTargetCalories > 0
         ? (data.totalConsumedCalories / data.totalTargetCalories).clamp(0.0, 1.0)
         : 0.0;
@@ -23,7 +21,6 @@ class MacrosSummaryCard extends StatelessWidget {
         _CaloriesCard(
           consumed: data.totalConsumedCalories,
           target: data.totalTargetCalories,
-          remaining: remaining.toDouble(),
           progress: calProgress.toDouble(),
         ),
         const SizedBox(height: 12),
@@ -70,13 +67,11 @@ class MacrosSummaryCard extends StatelessWidget {
 class _CaloriesCard extends StatelessWidget {
   final double consumed;
   final double target;
-  final double remaining;
   final double progress;
 
   const _CaloriesCard({
     required this.consumed,
     required this.target,
-    required this.remaining,
     required this.progress,
   });
 
@@ -107,12 +102,12 @@ class _CaloriesCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    'السعرات المتبقية',
+                    'السعرات المأكولة',
                     style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${remaining.toStringAsFixed(0)} سعرة',
+                    '${consumed.toStringAsFixed(0)} سعرة',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 24,

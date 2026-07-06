@@ -5,7 +5,7 @@ import '../../../core/models/nutrition/meal_schedule.dart';
 import '../../../core/services/nutrition_service.dart';
 
 /// Central state for [NutritionScreen] and [LogMealSheet].
-/// Holds [TodayMealsResponse]; optimistic updates on log/skip.
+/// State updates after successful API responses (no local macro math).
 class NutritionNotifier extends StateNotifier<AsyncValue<TodayMealsResponse>> {
   final NutritionService _service;
 
@@ -27,8 +27,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<TodayMealsResponse>> {
   /// Refreshes the meal data.
   Future<void> refresh() => fetch();
 
-  /// Logs a meal as eaten. 
-  /// Performs an optimistic update first, then syncs with the server.
+  /// Logs a meal as eaten; patches state from POST response only.
   Future<bool> logMeal({
     required int scheduleId,
     required int mealId,
@@ -37,9 +36,6 @@ class NutritionNotifier extends StateNotifier<AsyncValue<TodayMealsResponse>> {
     required double referenceWeightG,
   }) async {
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
-    // Optimistic update
-    _updateMealState(scheduleId, (m) => m.copyWith(status: 'eaten', logged: true));
 
     try {
       final result = await _service.logSingleMeal(
@@ -51,27 +47,26 @@ class NutritionNotifier extends StateNotifier<AsyncValue<TodayMealsResponse>> {
         referenceWeightG: referenceWeightG,
       );
 
-      // Apply actual macros returned by server
       _updateMealState(scheduleId, (m) => m.copyWith(
-        status: 'eaten',
-        logged: true,
-        actualWeightGrams: actualWeightGrams,
-        actualCalories: (result['actual_calories'] as num?)?.toDouble(),
-        actualProtein: (result['actual_protein'] as num?)?.toDouble(),
-        actualCarbs: (result['actual_carbs'] as num?)?.toDouble(),
-        actualFat: (result['actual_fat'] as num?)?.toDouble(),
-        intakeItemId: (result['intake_item_id'] as num?)?.toInt(),
-      ));
+            status: 'eaten',
+            logged: true,
+            actualWeightGrams: actualWeightGrams,
+            actualCalories:
+                MealSchedule.parseApiDouble(result['actual_calories']),
+            actualProtein:
+                MealSchedule.parseApiDouble(result['actual_protein']),
+            actualCarbs: MealSchedule.parseApiDouble(result['actual_carbs']),
+            actualFat: MealSchedule.parseApiDouble(result['actual_fat']),
+            intakeItemId: MealSchedule.parseApiInt(result['intake_item_id']),
+          ));
 
       return true;
     } catch (_) {
-      // Rollback
-      _updateMealState(scheduleId, (m) => m.copyWith(status: 'scheduled', logged: false));
       return false;
     }
   }
 
-  /// Marks a meal as skipped.
+  /// Marks a meal as skipped after the server confirms.
   Future<bool> skipMeal({
     required int scheduleId,
     required int mealId,
@@ -79,8 +74,6 @@ class NutritionNotifier extends StateNotifier<AsyncValue<TodayMealsResponse>> {
     required double referenceWeightG,
   }) async {
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
-    _updateMealState(scheduleId, (m) => m.copyWith(status: 'skipped', logged: false));
 
     try {
       await _service.logSingleMeal(
@@ -92,15 +85,26 @@ class NutritionNotifier extends StateNotifier<AsyncValue<TodayMealsResponse>> {
         referenceWeightG: referenceWeightG,
         skipped: true,
       );
+
+      _updateMealState(
+        scheduleId,
+        (m) => m.copyWith(
+          status: 'skipped',
+          logged: false,
+          clearLoggedActuals: true,
+        ),
+      );
       return true;
     } catch (_) {
-      _updateMealState(scheduleId, (m) => m.copyWith(status: 'scheduled'));
       return false;
     }
   }
 
   /// Patches one [MealSchedule] by [scheduleId] and rebuilds [TodayMealsResponse].
-  void _updateMealState(int scheduleId, MealSchedule Function(MealSchedule) updater) {
+  void _updateMealState(
+    int scheduleId,
+    MealSchedule Function(MealSchedule) updater,
+  ) {
     state.whenData((response) {
       final updated = response.meals.map((m) {
         return m.scheduleId == scheduleId ? updater(m) : m;
@@ -116,6 +120,7 @@ class NutritionNotifier extends StateNotifier<AsyncValue<TodayMealsResponse>> {
 }
 
 /// Watched by [NutritionScreen]; written by [LogMealSheet] via logMeal/skipMeal.
-final nutritionProvider = StateNotifierProvider<NutritionNotifier, AsyncValue<TodayMealsResponse>>(
+final nutritionProvider =
+    StateNotifierProvider<NutritionNotifier, AsyncValue<TodayMealsResponse>>(
   (ref) => NutritionNotifier(NutritionService()),
 );

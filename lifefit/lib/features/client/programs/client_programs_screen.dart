@@ -18,6 +18,25 @@ class ClientProgramsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text(
+          'برامجي التدريبية',
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: false,
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: async.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
@@ -38,38 +57,15 @@ class ClientProgramsScreen extends ConsumerWidget {
                 parent: BouncingScrollPhysics(),
               ),
               slivers: [
-                // Header section with title and back navigation
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 56, 20, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back_ios,
-                                  size: 20, color: AppColors.textPrimary),
-                              onPressed: () => Navigator.pop(context),
-                            ),
-                            const Spacer(),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'برامجي التدريبية',
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${list.length} برنامج مخصّص لك',
-                          style: const TextStyle(fontSize: 14, color: Colors.grey),
-                        ),
-                      ],
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        '${list.length} برنامج مخصّص لك',
+                        style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
                     ),
                   ),
                 ),

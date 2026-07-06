@@ -133,17 +133,19 @@ class _MacroChips extends StatelessWidget {
   final MealSchedule schedule;
   const _MacroChips({required this.schedule});
 
+  String _macroLabel(double? actual, double target, {required bool eaten}) {
+    if (eaten) {
+      return actual != null ? actual.toStringAsFixed(0) : '—';
+    }
+    return target.toStringAsFixed(0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final cal = schedule.isEaten
-        ? (schedule.actualCalories ?? schedule.targetCalories)
-        : schedule.targetCalories;
-    final prot = schedule.isEaten
-        ? (schedule.actualProtein ?? schedule.targetProtein)
-        : schedule.targetProtein;
-    final carbs = schedule.isEaten
-        ? (schedule.actualCarbs ?? schedule.targetCarbs)
-        : schedule.targetCarbs;
+    final eaten = schedule.isEaten;
+    final cal = _macroLabel(schedule.actualCalories, schedule.targetCalories, eaten: eaten);
+    final prot = _macroLabel(schedule.actualProtein, schedule.targetProtein, eaten: eaten);
+    final carbs = _macroLabel(schedule.actualCarbs, schedule.targetCarbs, eaten: eaten);
 
     return Wrap(
       spacing: 6,
@@ -151,16 +153,16 @@ class _MacroChips extends StatelessWidget {
       textDirection: TextDirection.rtl,
       children: [
         _Chip(
-          label: '${cal.toStringAsFixed(0)} سعرة',
+          label: '$cal سعرة',
           color: AppColors.primary,
           icon: Icons.local_fire_department,
         ),
         _Chip(
-          label: 'ب ${prot.toStringAsFixed(0)}غ',
+          label: 'ب ${prot}غ',
           color: const Color(0xFF3ABEF9),
         ),
         _Chip(
-          label: 'ك ${carbs.toStringAsFixed(0)}غ',
+          label: 'ك ${carbs}غ',
           color: const Color(0xFFF59E0B),
         ),
       ],

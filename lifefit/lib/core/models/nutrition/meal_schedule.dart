@@ -1,6 +1,5 @@
 import 'meal_detail.dart';
 
-double? _dOpt(dynamic v) => v == null ? null : double.tryParse(v.toString());
 double _d(dynamic v) => v == null ? 0 : double.tryParse(v.toString()) ?? 0;
 
 /// One meal slot in today's plan with targets and optional intake log values.
@@ -46,6 +45,17 @@ class MealSchedule {
   bool get isEaten => status == 'eaten';
   bool get isSkipped => status == 'skipped';
 
+  /// Parses API decimals whether encoded as num or string (e.g. Laravel `"150.00"`).
+  static double? parseApiDouble(dynamic v) =>
+      v == null ? null : double.tryParse(v.toString());
+
+  static int? parseApiInt(dynamic v) {
+    if (v == null) return null;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString());
+  }
+
   String get mealTypeLabel {
     switch (mealType) {
       case 'breakfast':
@@ -78,12 +88,12 @@ class MealSchedule {
       targetCarbs: _d(json['target_carbs']),
       targetFat: _d(json['target_fat']),
       logged: json['logged'] == true,
-      actualWeightGrams: _dOpt(json['actual_weight_grams']),
-      actualCalories: _dOpt(json['actual_calories']),
-      actualProtein: _dOpt(json['actual_protein']),
-      actualCarbs: _dOpt(json['actual_carbs']),
-      actualFat: _dOpt(json['actual_fat']),
-      intakeItemId: (json['intake_item_id'] as num?)?.toInt(),
+      actualWeightGrams: parseApiDouble(json['actual_weight_grams']),
+      actualCalories: parseApiDouble(json['actual_calories']),
+      actualProtein: parseApiDouble(json['actual_protein']),
+      actualCarbs: parseApiDouble(json['actual_carbs']),
+      actualFat: parseApiDouble(json['actual_fat']),
+      intakeItemId: parseApiInt(json['intake_item_id']),
     );
   }
 
@@ -96,6 +106,7 @@ class MealSchedule {
     double? actualCarbs,
     double? actualFat,
     int? intakeItemId,
+    bool clearLoggedActuals = false,
   }) {
     return MealSchedule(
       scheduleId: scheduleId,
@@ -109,12 +120,17 @@ class MealSchedule {
       targetCarbs: targetCarbs,
       targetFat: targetFat,
       logged: logged ?? this.logged,
-      actualWeightGrams: actualWeightGrams ?? this.actualWeightGrams,
-      actualCalories: actualCalories ?? this.actualCalories,
-      actualProtein: actualProtein ?? this.actualProtein,
-      actualCarbs: actualCarbs ?? this.actualCarbs,
-      actualFat: actualFat ?? this.actualFat,
-      intakeItemId: intakeItemId ?? this.intakeItemId,
+      actualWeightGrams:
+          clearLoggedActuals ? null : (actualWeightGrams ?? this.actualWeightGrams),
+      actualCalories:
+          clearLoggedActuals ? null : (actualCalories ?? this.actualCalories),
+      actualProtein:
+          clearLoggedActuals ? null : (actualProtein ?? this.actualProtein),
+      actualCarbs:
+          clearLoggedActuals ? null : (actualCarbs ?? this.actualCarbs),
+      actualFat: clearLoggedActuals ? null : (actualFat ?? this.actualFat),
+      intakeItemId:
+          clearLoggedActuals ? null : (intakeItemId ?? this.intakeItemId),
     );
   }
 }

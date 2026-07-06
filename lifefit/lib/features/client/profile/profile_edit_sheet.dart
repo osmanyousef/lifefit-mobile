@@ -19,7 +19,7 @@ class ProfileEditSheet extends ConsumerStatefulWidget {
 class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   late final TextEditingController _birthCtrl;
   late final TextEditingController _heightCtrl;
-  late final TextEditingController _targetWeightCtrl;
+ 
   late final TextEditingController _weightCtrl;
   late final TextEditingController _muscleCtrl;
   late final TextEditingController _fatCtrl;
@@ -36,8 +36,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
     final s = widget.initial.currentStats;
     _birthCtrl = TextEditingController(text: p.birthDate ?? '');
     _heightCtrl = TextEditingController(text: p.heightCm?.toString() ?? '');
-    _targetWeightCtrl =
-        TextEditingController(text: p.targetWeightKg?.toString() ?? '');
+
     _weightCtrl = TextEditingController(text: s.weightKg?.toString() ?? '');
     _muscleCtrl =
         TextEditingController(text: s.muscleMassKg?.toString() ?? '');
@@ -49,7 +48,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
   void dispose() { //dispose is used to clear data from the state of the widget
     _birthCtrl.dispose();
     _heightCtrl.dispose();
-    _targetWeightCtrl.dispose();
+
     _weightCtrl.dispose();
     _muscleCtrl.dispose();
     _fatCtrl.dispose();
@@ -65,7 +64,6 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
       body['birth_date'] = _birthCtrl.text.trim();
     }
     _putNum(body, 'height_cm', _heightCtrl.text);
-    _putNum(body, 'target_weight_kg', _targetWeightCtrl.text);
     _putNum(body, 'weight_kg', _weightCtrl.text);
     _putNum(body, 'muscle_mass_kg', _muscleCtrl.text);
     _putNum(body, 'body_fat_pct', _fatCtrl.text);
@@ -154,9 +152,7 @@ class _ProfileEditSheetState extends ConsumerState<ProfileEditSheet> {
               children: [
                 Expanded(child: _field('الطول (سم)', _heightCtrl, Icons.height)),
                 const SizedBox(width: 12),
-                Expanded(
-                    child: _field(
-                        'الوزن المستهدف (كجم)', _targetWeightCtrl, Icons.flag)),
+              
               ],
             ),
             const SizedBox(height: 12),

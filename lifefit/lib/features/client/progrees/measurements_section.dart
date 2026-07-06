@@ -95,10 +95,10 @@ class MeasurementsSection extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 12),
-            // Latest metrics grid.
+            // ===================================================Measurement cards.
             _metricGrid(latest),
             const SizedBox(height: 18),
-            // Weight chart card.
+            // ===================================================Weight chart card.
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),

@@ -17,27 +17,31 @@ class TodayMealsResponse {
   double get totalTargetCalories =>
       meals.fold(0, (sum, m) => sum + m.targetCalories);
 
-  /// Uses actual macros when logged; otherwise falls back to targets for eaten meals.
-  double get totalConsumedCalories =>
-      meals.where((m) => m.isEaten).fold(0, (sum, m) => sum + (m.actualCalories ?? m.targetCalories));
+  /// Sum of backend-reported actual macros for eaten meals only.
+  double get totalConsumedCalories => meals
+      .where((m) => m.isEaten)
+      .fold(0, (sum, m) => sum + (m.actualCalories ?? 0));
 
   double get totalTargetProtein =>
       meals.fold(0, (sum, m) => sum + m.targetProtein);
 
-  double get totalConsumedProtein =>
-      meals.where((m) => m.isEaten).fold(0, (sum, m) => sum + (m.actualProtein ?? m.targetProtein));
+  double get totalConsumedProtein => meals
+      .where((m) => m.isEaten)
+      .fold(0, (sum, m) => sum + (m.actualProtein ?? 0));
 
   double get totalTargetCarbs =>
       meals.fold(0, (sum, m) => sum + m.targetCarbs);
 
-  double get totalConsumedCarbs =>
-      meals.where((m) => m.isEaten).fold(0, (sum, m) => sum + (m.actualCarbs ?? m.targetCarbs));
+  double get totalConsumedCarbs => meals
+      .where((m) => m.isEaten)
+      .fold(0, (sum, m) => sum + (m.actualCarbs ?? 0));
 
   double get totalTargetFat =>
       meals.fold(0, (sum, m) => sum + m.targetFat);
 
-  double get totalConsumedFat =>
-      meals.where((m) => m.isEaten).fold(0, (sum, m) => sum + (m.actualFat ?? m.targetFat));
+  double get totalConsumedFat => meals
+      .where((m) => m.isEaten)
+      .fold(0, (sum, m) => sum + (m.actualFat ?? 0));
 
   factory TodayMealsResponse.fromJson(Map<String, dynamic> json) {
     final dataList = json['data'];
