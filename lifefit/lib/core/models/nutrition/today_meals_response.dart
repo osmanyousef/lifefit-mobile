@@ -1,4 +1,5 @@
 import 'meal_schedule.dart';
+import '../../utils/json_parse.dart';
 
 /// Root payload for today's nutrition dashboard; totals are computed client-side.
 class TodayMealsResponse {
@@ -56,7 +57,7 @@ class TodayMealsResponse {
     return TodayMealsResponse(
       meals: meals,
       planName: json['plan_name']?.toString(),
-      intakeLogId: intakeLog is Map ? (intakeLog['id'] as num?)?.toInt() : null,
+      intakeLogId: intakeLog is Map ? asInt(intakeLog['id']) : null,
       intakeLogStatus: intakeLog is Map ? intakeLog['status']?.toString() : null,
     );
   }

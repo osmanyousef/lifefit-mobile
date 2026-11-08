@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/auth_provider.dart';
 
 import '../../../core/models/notifications/app_notification.dart';
 import '../../../core/services/notification_service.dart';
@@ -164,6 +165,7 @@ class NotificationsNotifier extends StateNotifier<NotificationsState> {
 // Provider for notifications list state.
 final notificationsProvider =
     StateNotifierProvider<NotificationsNotifier, NotificationsState>((ref) {
+  ref.watch(currentUserIdProvider);
   return NotificationsNotifier(ref.watch(notificationServiceProvider));
 });
 

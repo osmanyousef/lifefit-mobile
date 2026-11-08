@@ -39,6 +39,9 @@ class ScheduleSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          // Material ancestor so the tile's ink/background isn't hidden by the white Container.
+          child: Material(
+          type: MaterialType.transparency,
           child: ExpansionTile(
             tilePadding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
             childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
@@ -111,6 +114,7 @@ class ScheduleSection extends StatelessWidget {
                   (e) => _ExerciseRow(exercise: e),
                 ),
             ],
+          )
           ),
         ),
       ),

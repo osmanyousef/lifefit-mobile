@@ -1,4 +1,5 @@
 import 'meal_detail.dart';
+import '../../utils/json_parse.dart';
 
 double _d(dynamic v) => v == null ? 0 : double.tryParse(v.toString()) ?? 0;
 
@@ -74,9 +75,9 @@ class MealSchedule {
   factory MealSchedule.fromJson(Map<String, dynamic> json) {
     final mealJson = json['meal'];
     return MealSchedule(
-      scheduleId: (json['schedule_id'] as num?)?.toInt() ?? 0,
+      scheduleId: asInt(json['schedule_id']) ?? 0,
       mealType: (json['meal_type'] ?? 'snack').toString(),
-      mealOrder: (json['meal_order'] as num?)?.toInt() ?? 1,
+      mealOrder: asInt(json['meal_order']) ?? 1,
       status: (json['status'] ?? 'scheduled').toString(),
       meal: mealJson is Map<String, dynamic>
           ? MealDetail.fromJson(mealJson)
@@ -87,7 +88,7 @@ class MealSchedule {
       targetProtein: _d(json['target_protein']),
       targetCarbs: _d(json['target_carbs']),
       targetFat: _d(json['target_fat']),
-      logged: json['logged'] == true,
+      logged: asBool(json['logged']),
       actualWeightGrams: parseApiDouble(json['actual_weight_grams']),
       actualCalories: parseApiDouble(json['actual_calories']),
       actualProtein: parseApiDouble(json['actual_protein']),

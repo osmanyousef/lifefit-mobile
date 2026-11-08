@@ -1,3 +1,4 @@
+import '../../utils/json_parse.dart';
 /// In-app notification: [type] selects behavior; human text lives in [payload].
 class AppNotification {
   final int id;
@@ -64,7 +65,7 @@ class AppNotification {
       userId: _intId(json['user_id']),
       type: json['type']?.toString() ?? '',
       payload: payload,
-      isRead: json['is_read'] == true || json['is_read'] == 1,
+      isRead: asBool(json['is_read']) || json['is_read'] == 1,
       createdAt: created,
     );
   }

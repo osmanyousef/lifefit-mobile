@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/progress/client_goal.dart';
 import '../../../core/services/progress_service.dart';
 
@@ -29,5 +30,6 @@ class GoalsNotifier extends StateNotifier<AsyncValue<List<ClientGoal>>> {
 // Provider for client goals list state.
 final goalsProvider =
     StateNotifierProvider<GoalsNotifier, AsyncValue<List<ClientGoal>>>((ref) {
+  ref.watch(currentUserIdProvider);
   return GoalsNotifier(ProgressService());
 });

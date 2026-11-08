@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/profile_web/client_profile_bundle.dart';
 import '../../../core/services/profile_web_service.dart';
 
@@ -38,5 +39,6 @@ class ClientProfileNotifier
 /// Watched by [ProfileScreen]; updated by [ProfileEditSheet._save].
 final clientProfileProvider = StateNotifierProvider<ClientProfileNotifier,
     AsyncValue<ClientProfileBundle>>((ref) {
+  ref.watch(currentUserIdProvider);
   return ClientProfileNotifier(ProfileService());
 });

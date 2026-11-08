@@ -1,3 +1,4 @@
+import '../../utils/json_parse.dart';
 // ─── Nested service info ──────────────────────────────────────────────────────
 
 /// Nested `service` object inside a client subscription record.
@@ -21,11 +22,11 @@ class SubscriptionServiceInfo {
 
   factory SubscriptionServiceInfo.fromJson(Map<String, dynamic> json) =>
       SubscriptionServiceInfo(
-        id: json['id'] as int,
-        title: json['title'] as String,
-        type: json['type'] as String,
-        price: (json['price'] as num).toDouble(),
-        expertName: json['expert_name'] as String?,
+        id: asInt(json['id']) ?? 0,
+        title: (json['title'] ?? '').toString(),
+        type: (json['type'] ?? '').toString(),
+        price: asDouble(json['price']) ?? 0,
+        expertName: asString(json['expert_name']),
       );
 }
 
@@ -49,14 +50,14 @@ class MySubscription {
   });
 
   factory MySubscription.fromJson(Map<String, dynamic> json) => MySubscription(
-        id: json['id'] as int,
-        status: json['status'] as String,
+        id: asInt(json['id']) ?? 0,
+        status: (json['status'] ?? '').toString(),
         renewalDate: json['renewal_date'] != null
-            ? DateTime.tryParse(json['renewal_date'] as String)
+            ? DateTime.tryParse(json['renewal_date'].toString())
             : null,
-        service: json['service'] != null
+        service: json['service'] is Map
             ? SubscriptionServiceInfo.fromJson(
-                json['service'] as Map<String, dynamic>)
+                Map<String, dynamic>.from(json['service'] as Map))
             : null,
       );
 }

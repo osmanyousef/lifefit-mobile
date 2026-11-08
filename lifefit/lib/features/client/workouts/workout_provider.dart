@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/workout/today_schedule.dart';
 import '../../../core/models/workout/exercise_log.dart';
 import '../../../core/services/workout_service.dart';
@@ -76,5 +77,6 @@ class TodaySchedulesNotifier
 /// Global provider — watch with `ref.watch(todaySchedulesProvider)`.
 final todaySchedulesProvider = StateNotifierProvider<TodaySchedulesNotifier,
     AsyncValue<List<TodaySchedule>>>((ref) {
+  ref.watch(currentUserIdProvider);
   return TodaySchedulesNotifier(WorkoutService());
 });

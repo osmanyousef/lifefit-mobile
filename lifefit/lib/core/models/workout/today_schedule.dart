@@ -1,5 +1,6 @@
 import 'workout.dart';
 import 'workout_log.dart';
+import '../../utils/json_parse.dart';
 
 /// Today's assigned workout from the client dashboard API.
 class TodaySchedule {
@@ -29,7 +30,7 @@ class TodaySchedule {
     final logJson = json['workout_log'];
 
     return TodaySchedule(
-      scheduleId: (json['schedule_id'] as num?)?.toInt() ?? 0,
+      scheduleId: asInt(json['schedule_id']) ?? 0,
       status: (json['status'] ?? 'scheduled').toString(),
       workout: workoutJson is Map<String, dynamic>
           ? Workout.fromJson(workoutJson)

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/auth_provider.dart';
 
 import '../../../core/models/programs/client_program_detail.dart';
 import '../../../core/models/programs/program_assignment_summary.dart';
@@ -26,6 +27,7 @@ class ClientProgramsNotifier extends StateNotifier<AsyncValue<List<ProgramAssign
 
 final clientProgramsProvider =
     StateNotifierProvider<ClientProgramsNotifier, AsyncValue<List<ProgramAssignmentSummary>>>((ref) {
+  ref.watch(currentUserIdProvider);
   return ClientProgramsNotifier(ClientProgramService());
 });
 

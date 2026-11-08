@@ -1,4 +1,5 @@
 import 'exercise_log.dart';
+import '../../utils/json_parse.dart';
 
 /// Client session log for a scheduled workout, including per-set [exerciseLogs].
 class WorkoutLog {
@@ -32,15 +33,15 @@ class WorkoutLog {
         : <ExerciseLog>[];
 
     return WorkoutLog(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      scheduleId: (json['schedule_id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
+      scheduleId: asInt(json['schedule_id']) ?? 0,
       status: (json['status'] ?? 'pending').toString(),
-      trainerReviewed: json['trainer_reviewed'] == true,
+      trainerReviewed: asBool(json['trainer_reviewed']),
       actualDurationMinutes: _readMinutes(
         json['actual_duration_minutes'],
         json['total_duration_seconds'],
       ),
-      targetDurationMinutes: (json['target_duration_minutes'] as num?)?.toInt(),
+      targetDurationMinutes: asInt(json['target_duration_minutes']),
       notes: json['notes']?.toString(),
       exerciseLogs: logs,
     );

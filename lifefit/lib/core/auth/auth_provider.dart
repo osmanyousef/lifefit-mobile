@@ -11,6 +11,14 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>(
   (ref) => AuthNotifier(),
 );
 
+/// Id of the signed-in user, or null when logged out.
+///
+/// Every provider that holds per-user API data watches this, so it is rebuilt
+/// (dropping the previous account's cached data) on login, logout, or account switch.
+final currentUserIdProvider = Provider<int?>(
+  (ref) => ref.watch(authProvider.select((s) => s.user?.id)),
+);
+
 /// Handles login/register/logout and session restore. Token persistence lives in [TokenStorage].
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthService _auth = AuthService();

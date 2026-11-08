@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/auth_provider.dart';
 
 import '../../../core/models/subscription/expert_model.dart';
 import '../../../core/models/subscription/my_subscription_model.dart';
@@ -34,7 +35,10 @@ class ExpertsNotifier
 /// Watched by [TrainersScreen]; refreshed via [ExpertsNotifier.refresh].
 final expertsProvider = StateNotifierProvider<
     ExpertsNotifier, AsyncValue<List<ExpertModel>>>(
-  (ref) => ExpertsNotifier(SubscriptionService()),
+  (ref) {
+    ref.watch(currentUserIdProvider);
+    return ExpertsNotifier(SubscriptionService());
+  },
 );
 
 // ─── My Subscriptions Provider ────────────────────────────────────────────────
@@ -44,5 +48,6 @@ final expertsProvider = StateNotifierProvider<
 /// Client subscription history — List<MySubscription>.
 final mySubscriptionsProvider =
     FutureProvider.autoDispose<List<MySubscription>>((ref) {
+  ref.watch(currentUserIdProvider);
   return SubscriptionService().fetchMySubscriptions();
 });

@@ -1,3 +1,4 @@
+import '../../utils/json_parse.dart';
 /// Root of `GET /api/client/programs/{id}` → `data`.
 class ClientProgramDetail {
   final int id;
@@ -28,7 +29,7 @@ class ClientProgramDetail {
         : <ProgramScheduleEntry>[];
 
     return ClientProgramDetail(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
       program: ProgramDetailBlock.fromJson(
         Map<String, dynamic>.from(json['program'] as Map? ?? {}),
       ),
@@ -66,10 +67,10 @@ class ProgramDetailBlock {
 
   factory ProgramDetailBlock.fromJson(Map<String, dynamic> json) {
     return ProgramDetailBlock(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
       name: (json['name'] ?? '').toString(),
       description: json['description']?.toString(),
-      durationWeeks: (json['duration_weeks'] as num?)?.toInt(),
+      durationWeeks: asInt(json['duration_weeks']),
       difficultyLevel: json['difficulty_level']?.toString(),
     );
   }
@@ -88,7 +89,7 @@ class TrainerDetailBlock {
 
   factory TrainerDetailBlock.fromJson(Map<String, dynamic> json) {
     return TrainerDetailBlock(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
       name: (json['name'] ?? '').toString(),
       profileImage: json['profile_image']?.toString(),
     );
@@ -112,9 +113,9 @@ class ProgramScheduleEntry {
   factory ProgramScheduleEntry.fromJson(Map<String, dynamic> json) {
     final w = json['workout'];
     return ProgramScheduleEntry(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      dayOfWeek: (json['day_of_week'] as num?)?.toInt(),
-      weekNumber: (json['week_number'] as num?)?.toInt(),
+      id: asInt(json['id']) ?? 0,
+      dayOfWeek: asInt(json['day_of_week']),
+      weekNumber: asInt(json['week_number']),
       workout: w is Map
           ? ScheduleWorkout.fromJson(Map<String, dynamic>.from(w))
           : const ScheduleWorkout(id: 0, name: '—', exercises: []),
@@ -147,7 +148,7 @@ class ScheduleWorkout {
         : <ProgramExerciseRow>[];
 
     return ScheduleWorkout(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
       name: (json['name'] ?? '').toString(),
       description: json['description']?.toString(),
       imageUrl: json['image_url']?.toString(),
@@ -165,7 +166,8 @@ class ProgramExerciseRow {
   final String? imageUrl;
   final String? videoUrl;
   final int? sets;
-  final int? reps;
+  /// Kept as text: trainers enter ranges like "8-12".
+  final String? reps;
   final int? durationMinutes;
   final int? restSeconds;
   final String? notes;
@@ -186,14 +188,14 @@ class ProgramExerciseRow {
 
   factory ProgramExerciseRow.fromJson(Map<String, dynamic> json) {
     return ProgramExerciseRow(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
       name: (json['name'] ?? '').toString(),
       muscleGroup: json['muscle_group']?.toString(),
       equipment: json['equipment']?.toString(),
       imageUrl: json['image_url']?.toString(),
       videoUrl: json['video_url']?.toString(),
       sets: _toInt(json['sets']),
-      reps: _toInt(json['reps']),
+      reps: asString(json['reps']),
       durationMinutes: _toInt(json['duration_minutes']),
       restSeconds: _toInt(json['rest_seconds']),
       notes: json['notes']?.toString(),

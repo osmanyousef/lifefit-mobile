@@ -1,3 +1,4 @@
+import '../../utils/json_parse.dart';
 /// One logged set: prescribed (target_*) vs performed (actual_*) values.
 class ExerciseLog {
   final int? id;
@@ -36,20 +37,20 @@ class ExerciseLog {
 
   factory ExerciseLog.fromJson(Map<String, dynamic> json) {
     return ExerciseLog(
-      id: (json['id'] as num?)?.toInt(),
-      exerciseId: (json['exercise_id'] as num?)?.toInt() ?? 0,
-      setNumber: (json['set_number'] as num?)?.toInt() ?? 0,
-      targetReps: (json['target_reps'] as num?)?.toInt(),
-      actualReps: (json['actual_reps'] as num?)?.toInt(),
+      id: asInt(json['id']),
+      exerciseId: asInt(json['exercise_id']) ?? 0,
+      setNumber: asInt(json['set_number']) ?? 0,
+      targetReps: asInt(json['target_reps']),
+      actualReps: asInt(json['actual_reps']),
       targetWeight: _toDouble(json['target_weight']),
       actualWeight: _toDouble(json['actual_weight']),
       intensityType: json['intensity_type']?.toString(),
-      targetPercentage: (json['target_percentage'] as num?)?.toInt(),
-      actualPercentage: (json['actual_percentage'] as num?)?.toInt(),
-      targetDurationSeconds: (json['target_duration_seconds'] as num?)?.toInt(),
-      actualDurationSeconds: (json['actual_duration_seconds'] as num?)?.toInt(),
-      rpeTarget: (json['rpe_target'] as num?)?.toInt(),
-      rpe: (json['rpe'] as num?)?.toInt(),
+      targetPercentage: asInt(json['target_percentage']),
+      actualPercentage: asInt(json['actual_percentage']),
+      targetDurationSeconds: asInt(json['target_duration_seconds']),
+      actualDurationSeconds: asInt(json['actual_duration_seconds']),
+      rpeTarget: asInt(json['rpe_target']),
+      rpe: asInt(json['rpe']),
       notes: json['notes']?.toString(),
     );
   }

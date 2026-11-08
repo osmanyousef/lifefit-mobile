@@ -1,4 +1,5 @@
 import 'body_measurement.dart';
+import '../../utils/json_parse.dart';
 
 /// Laravel `LengthAwarePaginator` JSON shape.
 class PaginatedMeasurements {
@@ -24,9 +25,9 @@ class PaginatedMeasurements {
         : <BodyMeasurement>[];
 
     return PaginatedMeasurements(
-      currentPage: (json['current_page'] as num?)?.toInt() ?? 1,
-      lastPage: (json['last_page'] as num?)?.toInt() ?? 1,
-      total: (json['total'] as num?)?.toInt() ?? list.length,
+      currentPage: asInt(json['current_page']) ?? 1,
+      lastPage: asInt(json['last_page']) ?? 1,
+      total: asInt(json['total']) ?? list.length,
       data: list,
     );
   }

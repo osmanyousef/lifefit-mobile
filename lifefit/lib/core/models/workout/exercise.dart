@@ -1,4 +1,5 @@
 import 'exercise_pivot.dart';
+import '../../utils/json_parse.dart';
 
 /// Exercise catalog entry. [pivot] is present when loaded via a [Workout] relation.
 class Exercise {
@@ -32,7 +33,7 @@ class Exercise {
     final pivotJson = json['pivot'];
 
     return Exercise(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
       name: (json['name'] ?? '').toString(),
       description: json['description']?.toString(),
       imageUrl: json['image_url']?.toString(),
@@ -40,8 +41,8 @@ class Exercise {
       muscles: json['muscles']?.toString(),
       difficulty: json['difficulty']?.toString(),
       category: json['category']?.toString(),
-      isPublic: json['is_public'] == true,
-      createdBy: (json['created_by'] as num?)?.toInt(),
+      isPublic: asBool(json['is_public']),
+      createdBy: asInt(json['created_by']),
       pivot: pivotJson is Map<String, dynamic>
           ? ExercisePivot.fromJson(pivotJson)
           : null,

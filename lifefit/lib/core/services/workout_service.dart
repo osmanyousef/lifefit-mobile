@@ -4,6 +4,7 @@ import '../models/workout/today_schedule.dart';
 import '../models/workout/workout.dart';
 import '../models/workout/workout_log.dart';
 import '../models/workout/exercise_log.dart';
+import '../utils/json_parse.dart';
 
 /// Web client workouts: `GET /client/today`, `POST /client/workout-logs`.
 class WorkoutService extends BaseService {
@@ -72,7 +73,7 @@ class WorkoutService extends BaseService {
     }
 
     return TodaySchedule(
-      scheduleId: (json['id'] as num?)?.toInt() ?? 0,
+      scheduleId: asInt(json['id']) ?? 0,
       status: (json['status'] ?? 'completed').toString(),
       workout: json['workout'] is Map<String, dynamic>
           ? Workout.fromJson(json['workout'] as Map<String, dynamic>)

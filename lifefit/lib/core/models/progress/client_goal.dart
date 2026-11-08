@@ -1,3 +1,4 @@
+import '../../utils/json_parse.dart';
 /// One row from `GET /api/client/goals` → `data[]`.
 class ClientGoal {
   final int id;
@@ -22,8 +23,8 @@ class ClientGoal {
 
   factory ClientGoal.fromJson(Map<String, dynamic> json) {
     return ClientGoal(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      clientId: (json['client_id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
+      clientId: asInt(json['client_id']) ?? 0,
       targetWeight: _toDouble(json['target_weight']),
       targetBodyFat: _toDouble(json['target_body_fat']),
       startDate: _parseDate(json['start_date']),

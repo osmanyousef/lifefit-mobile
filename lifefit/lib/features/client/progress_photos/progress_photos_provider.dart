@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/auth_provider.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/models/progress/progress_photos_grouped.dart';
@@ -49,5 +50,6 @@ class ProgressPhotosNotifier extends StateNotifier<AsyncValue<List<ProgressPhoto
 
 final progressPhotosProvider =
     StateNotifierProvider<ProgressPhotosNotifier, AsyncValue<List<ProgressPhotosDay>>>((ref) {
+  ref.watch(currentUserIdProvider);
   return ProgressPhotosNotifier(ProgressService());
 });

@@ -1,3 +1,4 @@
+import '../../utils/json_parse.dart';
 // Model for a single service (monthly / quarterly / yearly) offered by an expert.
 class ExpertServiceItem {
   final int id;
@@ -16,11 +17,11 @@ class ExpertServiceItem {
 
   factory ExpertServiceItem.fromJson(Map<String, dynamic> json) =>
       ExpertServiceItem(
-        id: json['id'] as int,
-        title: json['title'] as String,
-        price: (json['price'] as num).toDouble(),
-        maxParticipants: json['max_participants'] as int? ?? 0,
-        currentParticipants: json['current_participants'] as int? ?? 0,
+        id: asInt(json['id']) ?? 0,
+        title: (json['title'] ?? '').toString(),
+        price: asDouble(json['price']) ?? 0,
+        maxParticipants: asInt(json['max_participants']) ?? 0,
+        currentParticipants: asInt(json['current_participants']) ?? 0,
       );
 }
 
@@ -75,18 +76,18 @@ class ExpertModel {
     }
 
     return ExpertModel(
-      id: json['id'] as int,
-      name: json['name'] as String,
-      email: json['email'] as String,
-      role: json['role'] as String,
-      avatarUrl: json['avatar_url'] as String?,
-      bio: json['bio'] as String?,
+      id: asInt(json['id']) ?? 0,
+      name: (json['name'] ?? '').toString(),
+      email: (json['email'] ?? '').toString(),
+      role: (json['role'] ?? '').toString(),
+      avatarUrl: asString(json['avatar_url']),
+      bio: asString(json['bio']),
       specialties: (json['specialties'] as List<dynamic>?)
-              ?.whereType<String>()
+              ?.map((e) => e.toString())
               .toList() ??
           [],
-      yearsExperience: json['years_experience'] as int? ?? 0,
-      isSubscribed: json['is_subscribed'] as bool? ?? false,
+      yearsExperience: asInt(json['years_experience']) ?? 0,
+      isSubscribed: asBool(json['is_subscribed']),
       services: services,
     );
   }

@@ -1,3 +1,4 @@
+import '../../utils/json_parse.dart';
 /// List item from `GET /api/client/programs` → `data[]` (ProgramAssignmentResource).
 class ProgramAssignmentSummary {
   final int id;
@@ -28,11 +29,11 @@ class ProgramAssignmentSummary {
 
   factory ProgramAssignmentSummary.fromJson(Map<String, dynamic> json) {
     return ProgramAssignmentSummary(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      programId: (json['program_id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
+      programId: asInt(json['program_id']) ?? 0,
       programName: (json['program_name'] ?? '').toString(),
       programDescription: json['program_description']?.toString(),
-      programDurationWeeks: (json['program_duration_weeks'] as num?)?.toInt(),
+      programDurationWeeks: asInt(json['program_duration_weeks']),
       trainerName: (json['trainer_name'] ?? '').toString(),
       trainerImage: json['trainer_image']?.toString(),
       startDate: _parseDate(json['start_date']),

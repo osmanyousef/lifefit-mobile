@@ -1,9 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/auth_provider.dart';
 import 'client_home_state.dart';
 
 final clientHomeProvider =
     StateNotifierProvider<ClientHomeNotifier, ClientHomeState>(
-  (ref) => ClientHomeNotifier(),
+  (ref) {
+    ref.watch(currentUserIdProvider);
+    return ClientHomeNotifier();
+  },
 );
 
 class ClientHomeNotifier extends StateNotifier<ClientHomeState> {

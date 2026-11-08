@@ -1,3 +1,4 @@
+import '../../utils/json_parse.dart';
 /// Nested exercise payload from `GET /api/client/personal-records`.
 class PersonalRecordExercise {
   final int id;
@@ -12,7 +13,7 @@ class PersonalRecordExercise {
 
   factory PersonalRecordExercise.fromJson(Map<String, dynamic> json) {
     return PersonalRecordExercise(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
       name: (json['name'] ?? '').toString(),
       muscles: json['muscles']?.toString(),
     );
@@ -50,16 +51,16 @@ class PersonalRecord {
   factory PersonalRecord.fromJson(Map<String, dynamic> json) {
     final ex = json['exercise'];
     return PersonalRecord(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      clientId: (json['client_id'] as num?)?.toInt() ?? 0,
-      exerciseId: (json['exercise_id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
+      clientId: asInt(json['client_id']) ?? 0,
+      exerciseId: asInt(json['exercise_id']) ?? 0,
       weight: _toDouble(json['weight']),
-      reps: (json['reps'] as num?)?.toInt(),
+      reps: asInt(json['reps']),
       recordedAt: _parseDate(json['recorded_at']),
       estimatedOneRm: _toDouble(json['estimated_1rm']),
       createdAt: _parseDate(json['created_at']),
       updatedAt: _parseDate(json['updated_at']),
-      sourceLogId: (json['source_log_id'] as num?)?.toInt(),
+      sourceLogId: asInt(json['source_log_id']),
       exercise: ex is Map<String, dynamic>
           ? PersonalRecordExercise.fromJson(ex)
           : null,

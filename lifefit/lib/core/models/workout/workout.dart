@@ -1,4 +1,5 @@
 import 'exercise.dart';
+import '../../utils/json_parse.dart';
 
 /// Workout template with ordered [exercises] and optional pivot prescriptions.
 class Workout {
@@ -30,10 +31,10 @@ class Workout {
         : <Exercise>[];
 
     return Workout(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
       name: (json['name'] ?? '').toString(),
       description: json['description']?.toString(),
-      estimatedDuration: (json['estimated_duration'] as num?)?.toInt(),
+      estimatedDuration: asInt(json['estimated_duration']),
       difficulty: json['difficulty']?.toString(),
       type: json['type']?.toString(),
       exercises: exercises,

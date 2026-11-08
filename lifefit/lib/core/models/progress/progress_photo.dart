@@ -1,3 +1,4 @@
+import '../../utils/json_parse.dart';
 /// One progress photo from `GET /api/client/photos` grouped payload or POST response `data`.
 class ProgressPhoto {
   final int id;
@@ -18,8 +19,8 @@ class ProgressPhoto {
 
   factory ProgressPhoto.fromJson(Map<String, dynamic> json) {
     return ProgressPhoto(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      clientId: (json['client_id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
+      clientId: asInt(json['client_id']) ?? 0,
       date: _parseDate(json['date']),
       photoUrl: (json['photo_url'] ?? '').toString(),
       photoType: (json['photo_type'] ?? '').toString(),

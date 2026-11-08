@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/auth_provider.dart';
 import 'package:intl/intl.dart';
 import '../../../core/models/nutrition/today_meals_response.dart';
 import '../../../core/models/nutrition/meal_schedule.dart';
@@ -122,5 +123,8 @@ class NutritionNotifier extends StateNotifier<AsyncValue<TodayMealsResponse>> {
 /// Watched by [NutritionScreen]; written by [LogMealSheet] via logMeal/skipMeal.
 final nutritionProvider =
     StateNotifierProvider<NutritionNotifier, AsyncValue<TodayMealsResponse>>(
-  (ref) => NutritionNotifier(NutritionService()),
+  (ref) {
+    ref.watch(currentUserIdProvider);
+    return NutritionNotifier(NutritionService());
+  },
 );

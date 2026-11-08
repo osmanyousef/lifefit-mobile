@@ -1,3 +1,4 @@
+import '../utils/json_parse.dart';
 /// User model from GET /api/user and login/register responses.
 class User {
   final int id;
@@ -93,7 +94,7 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'] as int,
+      id: asInt(json['id']) ?? 0,
       email: (json['email'] ?? '').toString(),
       name: (json['name'] ?? '').toString(),
       role: (json['role'] ?? '').toString(),
@@ -104,8 +105,8 @@ class User {
       emailVerifiedAt: json['email_verified_at'] != null
           ? DateTime.parse(json['email_verified_at'].toString())
           : null,
-      createdAt: DateTime.parse(json['created_at'].toString()),
-      updatedAt: DateTime.parse(json['updated_at'].toString()),
+      createdAt: asDate(json['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+      updatedAt: asDate(json['updated_at']) ?? DateTime.fromMillisecondsSinceEpoch(0),
       deletedAt: json['deleted_at'] != null
           ? DateTime.parse(json['deleted_at'].toString())
           : null,

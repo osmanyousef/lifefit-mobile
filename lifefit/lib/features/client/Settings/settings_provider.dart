@@ -94,5 +94,6 @@ class AccountSettingsNotifier extends StateNotifier<AsyncValue<User>> {
 
 final accountSettingsProvider =
     StateNotifierProvider<AccountSettingsNotifier, AsyncValue<User>>((ref) {
+  ref.watch(currentUserIdProvider);
   return AccountSettingsNotifier(UserService(), ref);
 });

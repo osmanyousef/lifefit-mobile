@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/progress/personal_record.dart';
 import '../../../core/services/progress_service.dart';
 
@@ -30,5 +31,6 @@ class PersonalRecordsNotifier
 // Provider for personal records list state.
 final personalRecordsProvider = StateNotifierProvider<PersonalRecordsNotifier,
     AsyncValue<List<PersonalRecord>>>((ref) {
+  ref.watch(currentUserIdProvider);
   return PersonalRecordsNotifier(ProgressService());
 });

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/auth/auth_provider.dart';
 import '../../../core/models/progress/body_measurement.dart';
 import '../../../core/services/progress_service.dart';
 
@@ -36,5 +37,8 @@ class MeasurementsNotifier extends StateNotifier<AsyncValue<List<BodyMeasurement
 // Provider for measurements list state.
 final measurementsProvider =
     StateNotifierProvider<MeasurementsNotifier, AsyncValue<List<BodyMeasurement>>>(
-  (ref) => MeasurementsNotifier(ProgressService()),
+  (ref) {
+    ref.watch(currentUserIdProvider);
+    return MeasurementsNotifier(ProgressService());
+  },
 );

@@ -38,10 +38,16 @@ class WorkoutsScreen extends ConsumerWidget {
           experts.any((e) => e.role == 'trainer' && e.isSubscribed),
       orElse: () => null,
     );
+    // Only show the "no subscription" screen when there is also nothing scheduled
+    // today — if the API returned workouts, the client clearly has access to them.
+    final hasNoWorkoutsToday = schedulesAsync.maybeWhen(
+      data: (schedules) => schedules.isEmpty,
+      orElse: () => false,
+    );
 
     return Scaffold(
       backgroundColor: _bg,
-      body: hasTrainerSubscription == false
+      body: hasTrainerSubscription == false && hasNoWorkoutsToday
           ? _NoSubscriptionView(
               onBrowseTrainers: () => Navigator.push(
                 context,

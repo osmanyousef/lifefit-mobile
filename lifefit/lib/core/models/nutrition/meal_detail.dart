@@ -1,4 +1,5 @@
 import 'meal_ingredient.dart';
+import '../../utils/json_parse.dart';
 
 double _d(dynamic v) => v == null ? 0 : double.tryParse(v.toString()) ?? 0;
 
@@ -34,7 +35,7 @@ class MealDetail {
         : <MealIngredient>[];
 
     return MealDetail(
-      id: (json['id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
       name: (json['name'] ?? '').toString(),
       imageUrl: json['image_url']?.toString(),
       totalCalories: _d(json['total_calories']),

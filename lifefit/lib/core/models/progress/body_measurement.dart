@@ -1,3 +1,4 @@
+import '../../utils/json_parse.dart';
 /// One row from Laravel paginated `GET /api/client/measurements` → `data[]`.
 class BodyMeasurement {
   final int id;
@@ -24,8 +25,8 @@ class BodyMeasurement {
 
   factory BodyMeasurement.fromJson(Map<String, dynamic> json) {
     return BodyMeasurement(
-      id: (json['id'] as num?)?.toInt() ?? 0,
-      clientId: (json['client_id'] as num?)?.toInt() ?? 0,
+      id: asInt(json['id']) ?? 0,
+      clientId: asInt(json['client_id']) ?? 0,
       date: _parseDate(json['date']),
       weightKg: _toDouble(json['weight_kg']),
       bodyFatPct: _toDouble(json['body_fat_pct']),
