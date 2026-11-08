@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,6 +15,7 @@ import '../../../features/client/programs/client_programs_screen.dart';
 import '../../../features/client/progress_photos/progress_photos_screen.dart';
 import '../../../features/client/subscription/my_subscriptions_screen.dart';
 import '../../../features/client/subscription/trainers_screen.dart';
+import '../../../features/design_lab/design_lab_screen.dart';
 
 class ClientDrawer extends ConsumerWidget {
   const ClientDrawer({super.key});
@@ -71,6 +73,17 @@ class ClientDrawer extends ConsumerWidget {
               padding:
                   const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
               children: [
+                // Debug builds only: sandbox for the new design system.
+                if (kDebugMode)
+                  _item(context, Icons.palette_outlined, 'مختبر التصميم (تجريبي)',
+                      () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const DesignLabScreen()),
+                    );
+                  }),
                 _item(context, Icons.add_moderator_rounded, 'الملف الشخصي',
                     () {
                   Navigator.pop(context);

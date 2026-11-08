@@ -47,6 +47,8 @@ dependencies:
   fl_chart: ^0.69.2
   firebase_core: ^4.7.0
   cloud_firestore: ^6.3.0
+  # Design system (Design Lab test page). 0.26+ needs Flutter 3.47, so stay below it.
+  forui: ">=0.22.0 <0.26.0"
 
 dev_dependencies:
   flutter_test:
@@ -87,8 +89,12 @@ flutter:
     - family: Tajawal
       fonts:
         - asset: assets/fonts/Tajawal-Regular.ttf
+        - asset: assets/fonts/Tajawal-Medium.ttf
+          weight: 500
         - asset: assets/fonts/Tajawal-Bold.ttf
           weight: 700
+        - asset: assets/fonts/Tajawal-ExtraBold.ttf
+          weight: 800
 
   # To add assets to your application, add an assets section, like this:
   # assets:
