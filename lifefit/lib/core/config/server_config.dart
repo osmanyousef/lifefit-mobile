@@ -8,7 +8,7 @@ class ServerConfig {
 
   /// Set your PC LAN IP when testing on a **physical** phone (same Wi‑Fi).
   /// Example: `'192.168.1.10'`. Leave null for emulator defaults.
-  static const String? lanHostOverride = null;
+  static const String? lanHostOverride = '192.168.1.250'; // set back to null for the emulator
 
   /// Reachable host from the current runtime.
   static String get host {
