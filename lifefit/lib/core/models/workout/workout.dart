@@ -6,6 +6,9 @@ class Workout {
   final int id;
   final String name;
   final String? description;
+
+  /// Cover picture set by the trainer (`image_url`), full URL or null.
+  final String? imageUrl;
   final int? estimatedDuration;
   final String? difficulty;
   final String? type;
@@ -15,6 +18,7 @@ class Workout {
     required this.id,
     required this.name,
     this.description,
+    this.imageUrl,
     this.estimatedDuration,
     this.difficulty,
     this.type,
@@ -34,6 +38,7 @@ class Workout {
       id: asInt(json['id']) ?? 0,
       name: (json['name'] ?? '').toString(),
       description: json['description']?.toString(),
+      imageUrl: json['image_url']?.toString(),
       estimatedDuration: asInt(json['estimated_duration']),
       difficulty: json['difficulty']?.toString(),
       type: json['type']?.toString(),

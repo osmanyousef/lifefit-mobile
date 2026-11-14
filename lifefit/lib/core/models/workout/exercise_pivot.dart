@@ -4,6 +4,9 @@ import '../../utils/workout_duration_utils.dart';
 class ExercisePivot {
   final int sets;
   final String reps;
+
+  /// `reps` (count repetitions) or `time` (hold / run for a duration).
+  final String? setType;
   final double? targetWeight;
   final String? intensityType;
   final int? targetPercentage;
@@ -17,6 +20,7 @@ class ExercisePivot {
   const ExercisePivot({
     required this.sets,
     required this.reps,
+    this.setType,
     this.targetWeight,
     this.intensityType,
     this.targetPercentage,
@@ -32,6 +36,7 @@ class ExercisePivot {
     return ExercisePivot(
       sets: _toInt(json['sets']) ?? 0,
       reps: (json['reps'] ?? '0').toString(),
+      setType: json['set_type']?.toString(),
       targetWeight: _toDouble(json['target_weight']),
       intensityType: json['intensity_type']?.toString(),
       targetPercentage: _toInt(json['target_percentage']),
@@ -47,6 +52,7 @@ class ExercisePivot {
   Map<String, dynamic> toJson() => {
         'sets': sets,
         'reps': reps,
+        'set_type': setType,
         'target_weight': targetWeight,
         'intensity_type': intensityType,
         'target_percentage': targetPercentage,
@@ -83,6 +89,11 @@ class ExercisePivot {
   bool get isPercentageBased => effectiveIntensityType == 'percentage';
   bool get isRpeBased => effectiveIntensityType == 'rpe';
   bool get isTimeBased => effectiveIntensityType == 'time';
+
+  /// Each set is measured by duration instead of reps — either the trainer
+  /// picked set type "time" (e.g. a weighted plank) or the legacy "time"
+  /// intensity type.
+  bool get isDurationSet => setType?.trim().toLowerCase() == 'time' || isTimeBased;
 
   String get intensityTypeLabel {
     switch (effectiveIntensityType) {

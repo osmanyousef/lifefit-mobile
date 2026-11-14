@@ -46,31 +46,46 @@ class TodaySchedulesNotifier
     String? notes,
   }) async {
     try {
-      final updated = await _service.saveWorkoutLog(
+      await submitWorkoutLog(
         scheduleId: scheduleId,
         exerciseLogs: exerciseLogs,
         actualDurationMinutes: actualDurationMinutes,
         notes: notes,
       );
-
-      state.whenData((schedules) {
-        final newList = schedules.map((s) {
-          if (s.scheduleId != updated.scheduleId) return s;
-          // API response lacks workout.exercises — keep the cached workout tree.
-          return TodaySchedule(
-            scheduleId: s.scheduleId,
-            status: updated.status,
-            workout: s.workout,
-            workoutLog: updated.workoutLog,
-          );
-        }).toList();
-        state = AsyncValue.data(newList);
-      });
-
       return true;
     } catch (e) {
       return false;
     }
+  }
+
+  /// Same as [saveWorkoutLog] but throws the API error, so the screen can
+  /// show what went wrong. Same request, same local state update.
+  Future<void> submitWorkoutLog({
+    required int scheduleId,
+    required List<ExerciseLog> exerciseLogs,
+    int? actualDurationMinutes,
+    String? notes,
+  }) async {
+    final updated = await _service.saveWorkoutLog(
+      scheduleId: scheduleId,
+      exerciseLogs: exerciseLogs,
+      actualDurationMinutes: actualDurationMinutes,
+      notes: notes,
+    );
+
+    state.whenData((schedules) {
+      final newList = schedules.map((s) {
+        if (s.scheduleId != updated.scheduleId) return s;
+        // API response lacks workout.exercises — keep the cached workout tree.
+        return TodaySchedule(
+          scheduleId: s.scheduleId,
+          status: updated.status,
+          workout: s.workout,
+          workoutLog: updated.workoutLog,
+        );
+      }).toList();
+      state = AsyncValue.data(newList);
+    });
   }
 }
 
