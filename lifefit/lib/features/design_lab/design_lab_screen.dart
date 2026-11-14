@@ -46,7 +46,7 @@ class _DesignLabScreenState extends State<DesignLabScreen> {
                 bottom: const TabBar(
                   tabs: [
                     Tab(text: 'المكوّنات'),
-                    Tab(text: 'جلسة التمرين'),
+                    Tab(text: 'تمارين اليوم'),
                   ],
                 ),
               ),

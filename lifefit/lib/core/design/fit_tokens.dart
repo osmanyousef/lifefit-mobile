@@ -178,6 +178,15 @@ class FitColors extends ThemeExtension<FitColors> {
     onInverseSurface: Color(0xFF0B1214),
   );
 
+  /// Gradient for hero surfaces (today's progress, highlights). Text on it
+  /// uses [onHero].
+  List<Color> get heroGradient => brightness == Brightness.light
+      ? [primary, Color.lerp(primary, brand, 0.6)!]
+      : [Color.lerp(surface, brand, 0.32)!, Color.lerp(surface, brand, 0.12)!];
+
+  /// Text / icon colour on top of [heroGradient].
+  Color get onHero => brightness == Brightness.light ? onPrimary : foreground;
+
   /// Strong colour for a tone (text / icon).
   Color toneFg(FitTone tone) => switch (tone) {
         FitTone.neutral => mutedForeground,

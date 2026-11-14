@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../core/ui/app_colors.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/auth/auth_provider.dart';
+import '../../design_lab/design_lab_screen.dart';
 import 'forgot_password_screen.dart';
 import 'register_screen.dart';
 import 'widgets/auth_widgets.dart';
@@ -114,6 +116,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             MaterialPageRoute(builder: (_) => const RegisterScreen()),
           ),
         ),
+        // Debug builds only: open the Design Lab without signing in
+        // (it uses sample data, so the backend doesn't need to be running).
+        if (kDebugMode)
+          TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DesignLabScreen()),
+            ),
+            child: const Text(
+              'مختبر التصميم (تجريبي)',
+              style: TextStyle(color: AppColors.primary, fontSize: 13),
+            ),
+          ),
       ],
     );
   }

@@ -84,6 +84,8 @@ flutter:
   assets:
     - assets/sounds/notify.wav
     - assets/FitLife-Logo.png
+    # Sample exercise pictures for the Design Lab workout demo (safe to delete with it).
+    - assets/demo/exercises/
   
   fonts:
     - family: Tajawal

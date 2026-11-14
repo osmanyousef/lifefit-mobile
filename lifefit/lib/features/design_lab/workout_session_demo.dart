@@ -1,49 +1,38 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
 
 import '../../core/design/fit_components.dart';
 import '../../core/design/fit_theme.dart';
 import '../../core/design/fit_tokens.dart';
+import 'workout_demo_data.dart';
+import 'workout_detail_demo.dart';
+import 'workout_media.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Workout session — proposed new logging flow (sample data, no API).
+// Today's workouts — the first layer of the new workout flow (sample data).
 //
-// One screen for the whole workout: every set is pre-filled with the
-// trainer's target, so most sets are a single tap on ✓. Ticking a set starts
-// the rest timer automatically. In the real screen, saving will send the same
-// `POST client/workout-logs` payload the app sends today.
+//   Today (this screen)  →  Workout (workout_detail_demo.dart)  →  Exercise  →  Sets
+//
+// A day can hold more than one workout (e.g. "Full Day" and "Full Cardio &
+// Core"). Each one is a card with its cover picture, what's inside and how far
+// along it is; tapping it opens the workout.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _DemoSet {
-  _DemoSet(this.weight, this.reps);
-  double weight;
-  int reps;
-  bool done = false;
-}
+const _weekdays = ['الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+const _months = [
+  'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+  'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر',
+];
 
-class _DemoExercise {
-  _DemoExercise({
-    required this.name,
-    required this.muscles,
-    required this.targetSets,
-    required this.targetReps,
-    required this.targetWeight,
-    required this.restSeconds,
-  }) : sets = List.generate(targetSets, (_) => _DemoSet(targetWeight, targetReps));
+String _sessionsLabel(int n) => switch (n) {
+      1 => 'جلسة واحدة',
+      2 => 'جلستان',
+      _ => '$n جلسات',
+    };
 
-  final String name;
-  final String muscles;
-  final int targetSets;
-  final int targetReps;
-  final double targetWeight;
-  final int restSeconds;
-  final List<_DemoSet> sets;
-
-  int get doneCount => sets.where((s) => s.done).length;
-  bool get complete => doneCount == sets.length;
+String _todayLabel() {
+  final d = DateTime.now();
+  return '${_weekdays[d.weekday - 1]}، ${d.day} ${_months[d.month - 1]}';
 }
 
 class WorkoutSessionDemo extends StatefulWidget {
@@ -54,466 +43,423 @@ class WorkoutSessionDemo extends StatefulWidget {
 }
 
 class _WorkoutSessionDemoState extends State<WorkoutSessionDemo> with AutomaticKeepAliveClientMixin {
-  late List<_DemoExercise> _exercises;
-
-  bool _started = false;
-  Timer? _clock;
-  Duration _elapsed = Duration.zero;
-
-  Timer? _restTimer;
-  Duration _restTotal = Duration.zero;
-  Duration _restLeft = Duration.zero;
+  final DemoDay _day = DemoDay();
 
   @override
   bool get wantKeepAlive => true;
 
   @override
-  void initState() {
-    super.initState();
-    _exercises = _sampleWorkout();
-  }
-
-  List<_DemoExercise> _sampleWorkout() => [
-        _DemoExercise(name: 'ضغط البنش بالبار', muscles: 'صدر · ترايسبس', targetSets: 4, targetReps: 10, targetWeight: 40, restSeconds: 90),
-        _DemoExercise(name: 'سكوات', muscles: 'أرجل · مؤخرة', targetSets: 4, targetReps: 8, targetWeight: 60, restSeconds: 120),
-        _DemoExercise(name: 'سحب أمامي', muscles: 'ظهر · بايسبس', targetSets: 3, targetReps: 12, targetWeight: 35, restSeconds: 60),
-        _DemoExercise(name: 'رفع جانبي بالدمبل', muscles: 'أكتاف', targetSets: 3, targetReps: 15, targetWeight: 8, restSeconds: 45),
-      ];
-
-  @override
   void dispose() {
-    _clock?.cancel();
-    _restTimer?.cancel();
+    _day.dispose();
     super.dispose();
   }
 
-  // ── Derived stats ────────────────────────────────────────────────
-  int get _totalSets => _exercises.fold(0, (a, e) => a + e.sets.length);
-  int get _doneSets => _exercises.fold(0, (a, e) => a + e.doneCount);
-  double get _volume => _exercises.fold(
-        0.0,
-        (a, e) => a + e.sets.where((s) => s.done).fold(0.0, (b, s) => b + s.weight * s.reps),
-      );
-
-  String _fmt(Duration d) {
-    final h = d.inHours;
-    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
-    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return h > 0 ? '$h:$m:$s' : '$m:$s';
-  }
-
-  // ── Actions ──────────────────────────────────────────────────────
-  void _start() {
-    setState(() => _started = true);
-    _clock = Timer.periodic(const Duration(seconds: 1), (_) => setState(() => _elapsed += const Duration(seconds: 1)));
-  }
-
-  void _toggleSet(_DemoExercise ex, _DemoSet set) {
-    if (!_started) _start();
-    setState(() => set.done = !set.done);
-    if (set.done) {
-      _startRest(Duration(seconds: ex.restSeconds));
-    }
-  }
-
-  void _startRest(Duration d) {
-    _restTimer?.cancel();
-    setState(() {
-      _restTotal = d;
-      _restLeft = d;
-    });
-    _restTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (_restLeft.inSeconds <= 1) {
-        t.cancel();
-        HapticFeedback.heavyImpact();
-        setState(() => _restLeft = Duration.zero);
-      } else {
-        setState(() => _restLeft -= const Duration(seconds: 1));
-      }
-    });
-  }
-
-  void _addRest() => setState(() {
-        _restLeft += const Duration(seconds: 15);
-        _restTotal += const Duration(seconds: 15);
-      });
-
-  void _skipRest() {
-    _restTimer?.cancel();
-    setState(() => _restLeft = Duration.zero);
-  }
-
-  void _reset() {
-    _clock?.cancel();
-    _restTimer?.cancel();
-    setState(() {
-      _exercises = _sampleWorkout();
-      _started = false;
-      _elapsed = Duration.zero;
-      _restLeft = Duration.zero;
-    });
-  }
-
-  String? get _nextLabel {
-    for (final e in _exercises) {
-      final i = e.sets.indexWhere((s) => !s.done);
-      if (i != -1) return '${e.name} · المجموعة ${i + 1}';
-    }
-    return null;
-  }
-
-  void _showInfo(_DemoExercise ex) {
-    final c = context.fit;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: c.surface,
-      // Sheets open above this page, so they need the design-system scope again.
-      builder: (_) => FitScope(
-        colors: c,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(FitSpace.page, 0, FitSpace.page, FitSpace.xxl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(ex.name, style: FitType.title.copyWith(color: c.foreground)),
-              Text(ex.muscles, style: FitType.label.copyWith(color: c.mutedForeground)),
-              const SizedBox(height: FitSpace.lg),
-              Container(
-                height: 160,
-                decoration: BoxDecoration(color: c.surfaceAlt, borderRadius: FitRadius.mdAll),
-                alignment: Alignment.center,
-                child: Icon(FLucideIcons.circlePlay, size: 44, color: c.mutedForeground),
-              ),
-              const SizedBox(height: FitSpace.lg),
-              Text(
-                'الفيديو وطريقة الأداء وملاحظات المدرب تظهر هنا، بدون مغادرة شاشة التمرين.',
-                style: FitType.body.copyWith(color: c.foreground),
-              ),
-            ],
-          ),
+  void _openWorkout(DemoWorkout workout, int number) {
+    // The workout opens as a new page, so it needs the design-system scope again.
+    final colors = context.fit;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => FitScope(
+          colors: colors,
+          child: WorkoutDetailDemo(day: _day, workout: workout, number: number),
         ),
       ),
     );
   }
 
-  void _finish() {
-    _clock?.cancel();
-    _restTimer?.cancel();
-    final c = context.fit;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: c.surface,
-      builder: (sheetContext) => FitScope(
-        colors: c,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(FitSpace.page, 0, FitSpace.page, FitSpace.xxl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FitIconChip(icon: FLucideIcons.trophy, tone: FitTone.warning, size: 64),
-              const SizedBox(height: FitSpace.lg),
-              Text('أحسنت! أنهيت التمرين', style: FitType.title.copyWith(color: c.foreground)),
-              const SizedBox(height: FitSpace.xs),
-              Text('هذا ملخص جلستك', style: FitType.body.copyWith(color: c.mutedForeground)),
-              const SizedBox(height: FitSpace.xl),
-              Row(
-                children: [
-                  Expanded(child: FitStatTile(icon: FLucideIcons.timer, label: 'المدة', value: _fmt(_elapsed))),
-                  const SizedBox(width: FitSpace.sm),
-                  Expanded(
-                    child: FitStatTile(
-                      icon: FLucideIcons.listChecks,
-                      label: 'المجموعات',
-                      value: '$_doneSets/$_totalSets',
-                      tone: FitTone.success,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: FitSpace.sm),
-              FitStatTile(
-                icon: FLucideIcons.dumbbell,
-                label: 'إجمالي الحجم (الوزن × العدّات)',
-                value: _volume.round().toString(),
-                unit: 'كجم',
-                tone: FitTone.info,
-              ),
-              const SizedBox(height: FitSpace.xl),
-              FButton(
-                onPress: () => Navigator.pop(sheetContext),
-                prefix: const Icon(FLucideIcons.check),
-                child: const Text('حفظ التمرين'),
-              ),
-              const SizedBox(height: FitSpace.sm),
-              Text(
-                'في التطبيق الحقيقي: نفس طلب POST client/workout-logs الحالي',
-                textAlign: TextAlign.center,
-                style: FitType.caption.copyWith(color: c.mutedForeground),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── UI ───────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     super.build(context);
     final c = context.fit;
-    final resting = _restLeft > Duration.zero;
-    final allDone = _doneSets == _totalSets;
 
-    return Stack(
-      children: [
-        ListView(
-          padding: EdgeInsets.fromLTRB(FitSpace.page, FitSpace.lg, FitSpace.page, resting ? 170 : 110),
+    return ListenableBuilder(
+      listenable: _day,
+      builder: (context, _) {
+        final workouts = _day.workouts;
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(FitSpace.page, FitSpace.lg, FitSpace.page, FitSpace.xxxl),
           children: [
-            _SessionHeader(
-              elapsed: _fmt(_elapsed),
-              started: _started,
-              doneSets: _doneSets,
-              totalSets: _totalSets,
-              volume: _volume,
-              onStart: _start,
-              onReset: _reset,
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_todayLabel(), style: FitType.label.copyWith(color: c.mutedForeground)),
+                      Text('تمارين اليوم', style: FitType.display.copyWith(color: c.foreground)),
+                    ],
+                  ),
+                ),
+                FButton.icon(onPress: _day.reset, child: const Icon(FLucideIcons.rotateCcw)),
+              ],
             ),
             const SizedBox(height: FitSpace.lg),
-            for (final ex in _exercises) ...[
-              _ExerciseBlock(
-                exercise: ex,
-                onInfo: () => _showInfo(ex),
-                onToggle: (s) => _toggleSet(ex, s),
-                onChanged: () => setState(() {}),
-                onAddSet: () => setState(() {
-                  final last = ex.sets.isNotEmpty ? ex.sets.last : null;
-                  ex.sets.add(_DemoSet(last?.weight ?? ex.targetWeight, last?.reps ?? ex.targetReps));
-                }),
+            _DayHero(day: _day),
+            const SizedBox(height: FitSpace.xxl),
+            FitSectionHeader(
+              title: 'جلسات اليوم',
+              subtitle: '${_sessionsLabel(workouts.length)} · ${_day.totalExercises} تمريناً',
+              trailing: FitBadge(
+                label: '${_day.doneWorkouts}/${workouts.length}',
+                tone: _day.doneWorkouts == workouts.length ? FitTone.success : FitTone.neutral,
               ),
-              const SizedBox(height: FitSpace.md),
+            ),
+            for (var i = 0; i < workouts.length; i++) ...[
+              _WorkoutCard(
+                workout: workouts[i],
+                number: i + 1,
+                onOpen: () => _openWorkout(workouts[i], i + 1),
+              ),
+              const SizedBox(height: FitSpace.lg),
             ],
           ],
-        ),
+        );
+      },
+    );
+  }
+}
 
-        // Bottom area: rest timer (when resting) + finish button.
-        Positioned(
-          left: FitSpace.page,
-          right: FitSpace.page,
-          bottom: FitSpace.lg,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (child, anim) => SizeTransition(sizeFactor: anim, child: FadeTransition(opacity: anim, child: child)),
-                child: resting
-                    ? Padding(
-                        key: const ValueKey('rest'),
-                        padding: const EdgeInsets.only(bottom: FitSpace.sm),
-                        child: FitRestTimerBar(
-                          remaining: _restLeft,
-                          total: _restTotal,
-                          onAdd: _addRest,
-                          onSkip: _skipRest,
-                          nextLabel: _nextLabel,
-                        ),
-                      )
-                    : const SizedBox.shrink(key: ValueKey('none')),
-              ),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: FitRadius.mdAll,
-                  boxShadow: [BoxShadow(color: c.background, blurRadius: 16, spreadRadius: 8)],
-                ),
-                child: FButton(
-                  variant: allDone ? FButtonVariant.primary : FButtonVariant.outline,
-                  onPress: _doneSets == 0 ? null : _finish,
-                  prefix: const Icon(FLucideIcons.flag),
-                  child: Text(allDone ? 'إنهاء التمرين' : 'إنهاء التمرين ($_doneSets/$_totalSets)'),
-                ),
-              ),
-            ],
+// ── Day progress hero ────────────────────────────────────────────────────────
+
+class _DayHero extends StatelessWidget {
+  const _DayHero({required this.day});
+
+  final DemoDay day;
+
+  String get _headline {
+    if (day.doneSets == 0) return 'جاهز؟ لنبدأ تمرين اليوم';
+    if (day.doneSets == day.totalSets) return 'أنجزت كل تمارين اليوم';
+    if (day.progress >= 0.5) return 'أحسنت، تجاوزت نصف الطريق';
+    return 'بداية قوية، واصل';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.fit;
+    final on = c.onHero;
+    final percent = (day.progress * 100).round();
+
+    return ClipRRect(
+      borderRadius: FitRadius.lgAll,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: AlignmentDirectional.topStart,
+            end: AlignmentDirectional.bottomEnd,
+            colors: c.heroGradient,
           ),
         ),
+        child: Stack(
+          children: [
+            // Soft decorative circles, like the ones on the login screen.
+            PositionedDirectional(
+              top: -46,
+              end: -34,
+              child: _Blob(size: 150, color: on.withValues(alpha: 0.08)),
+            ),
+            PositionedDirectional(
+              bottom: -60,
+              end: 60,
+              child: _Blob(size: 120, color: on.withValues(alpha: 0.06)),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(FitSpace.lg),
+              child: Row(
+                children: [
+                  FitRing(
+                    value: day.progress,
+                    size: 88,
+                    stroke: 9,
+                    color: on,
+                    trackColor: on.withValues(alpha: 0.22),
+                    child: Text('$percent%', style: FitType.number.copyWith(fontSize: 22, color: on)),
+                  ),
+                  const SizedBox(width: FitSpace.lg),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('تقدّم اليوم', style: FitType.label.copyWith(color: on.withValues(alpha: 0.8))),
+                        Text(_headline, style: FitType.heading.copyWith(color: on)),
+                        const SizedBox(height: FitSpace.md),
+                        Wrap(
+                          spacing: FitSpace.sm,
+                          runSpacing: FitSpace.sm,
+                          children: [
+                            _HeroPill(label: '${day.doneExercises}/${day.totalExercises} تمرين', color: on),
+                            _HeroPill(label: '${day.doneSets}/${day.totalSets} مجموعة', color: on),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Blob extends StatelessWidget {
+  const _Blob({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+}
+
+class _HeroPill extends StatelessWidget {
+  const _HeroPill({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.16), borderRadius: FitRadius.pillAll),
+      child: Text(label, style: FitType.caption.copyWith(color: color, fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+// ── Workout card ─────────────────────────────────────────────────────────────
+
+class _WorkoutCard extends StatelessWidget {
+  const _WorkoutCard({required this.workout, required this.number, required this.onOpen});
+
+  final DemoWorkout workout;
+  final int number;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.fit;
+    final w = workout;
+    final finished = w.saved || w.complete;
+
+    final String cta;
+    final IconData ctaIcon;
+    if (finished) {
+      cta = 'عرض الجلسة';
+      ctaIcon = FLucideIcons.listChecks;
+    } else if (w.started) {
+      cta = 'متابعة الجلسة';
+      ctaIcon = FLucideIcons.play;
+    } else {
+      cta = 'ابدأ الجلسة';
+      ctaIcon = FLucideIcons.play;
+    }
+
+    return FitCard(
+      padding: EdgeInsets.zero,
+      onTap: onOpen,
+      borderColor: finished ? c.success.withValues(alpha: 0.5) : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Cover picture with the name on top.
+          SizedBox(
+            height: 156,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Hero(tag: 'workout-cover-${w.id}', child: FitPicture(w.cover)),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0x33000000), Color(0x0D000000), Color(0xD9000000)],
+                      stops: [0, 0.4, 1],
+                    ),
+                  ),
+                ),
+                PositionedDirectional(
+                  top: FitSpace.md,
+                  start: FitSpace.md,
+                  child: PhotoPill(label: 'الجلسة $number · ${w.kind}'),
+                ),
+                PositionedDirectional(
+                  top: FitSpace.md,
+                  end: FitSpace.md,
+                  child: _StatusPill(workout: w),
+                ),
+                PositionedDirectional(
+                  start: FitSpace.lg,
+                  end: FitSpace.lg,
+                  bottom: FitSpace.md,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        w.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: FitType.title.copyWith(color: kOnPhoto),
+                      ),
+                      Text(w.subtitle, style: FitType.label.copyWith(color: kOnPhoto.withValues(alpha: 0.85))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(FitSpace.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    _Meta(icon: FLucideIcons.dumbbell, label: '${w.exercises.length} تمارين'),
+                    const SizedBox(width: FitSpace.lg),
+                    _Meta(icon: FLucideIcons.listChecks, label: '${w.totalSets} مجموعة'),
+                    const Spacer(),
+                    _ThumbStack(pictures: [for (final e in w.exercises) e.thumb]),
+                  ],
+                ),
+                const SizedBox(height: FitSpace.md),
+                // What's inside: one chip per muscle group.
+                Wrap(
+                  spacing: FitSpace.sm,
+                  runSpacing: FitSpace.sm,
+                  children: [
+                    for (final s in w.sections)
+                      FitBadge(
+                        label: '${s.title} · ${s.doneExercises}/${s.exercises.length}',
+                        tone: s.complete ? FitTone.success : FitTone.neutral,
+                        icon: s.complete ? FLucideIcons.check : null,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: FitSpace.lg),
+                Row(
+                  children: [
+                    Expanded(child: FitProgressBar(value: w.progress, color: finished ? c.success : null)),
+                    const SizedBox(width: FitSpace.md),
+                    Text(
+                      '${w.doneSets}/${w.totalSets}',
+                      style: FitType.label.copyWith(color: c.mutedForeground, fontFeatures: FitType.number.fontFeatures),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: FitSpace.lg),
+                FButton(
+                  variant: finished ? FButtonVariant.outline : FButtonVariant.primary,
+                  onPress: onOpen,
+                  prefix: Icon(ctaIcon),
+                  child: Text(cta),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.workout});
+
+  final DemoWorkout workout;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.fit;
+    final w = workout;
+    if (w.saved || w.complete) {
+      return PhotoPill(label: 'مكتملة', icon: FLucideIcons.check, color: c.success);
+    }
+    if (w.started) {
+      return PhotoPill(label: 'جارية · ${(w.progress * 100).round()}%', icon: FLucideIcons.flame);
+    }
+    return const PhotoPill(label: 'لم تبدأ');
+  }
+}
+
+class _Meta extends StatelessWidget {
+  const _Meta({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.fit;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: c.toneFg(FitTone.brand)),
+        const SizedBox(width: FitSpace.xs + 2),
+        Text(label, style: FitType.label.copyWith(color: c.foreground, fontWeight: FontWeight.w700)),
       ],
     );
   }
 }
 
-class _SessionHeader extends StatelessWidget {
-  const _SessionHeader({
-    required this.elapsed,
-    required this.started,
-    required this.doneSets,
-    required this.totalSets,
-    required this.volume,
-    required this.onStart,
-    required this.onReset,
-  });
+/// Overlapping round exercise pictures, with "+n" when there are more.
+class _ThumbStack extends StatelessWidget {
+  const _ThumbStack({required this.pictures});
 
-  final String elapsed;
-  final bool started;
-  final int doneSets;
-  final int totalSets;
-  final double volume;
-  final VoidCallback onStart;
-  final VoidCallback onReset;
+  final List<String> pictures;
+
+  static const double _size = 30;
+  static const double _step = 20;
+  static const int _max = 4;
 
   @override
   Widget build(BuildContext context) {
     final c = context.fit;
-    return FitCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('تمرين اليوم', style: FitType.caption.copyWith(color: c.mutedForeground)),
-                    Text('Full Body', style: FitType.title.copyWith(color: c.foreground)),
-                  ],
-                ),
-              ),
-              FButton.icon(onPress: onReset, child: const Icon(FLucideIcons.rotateCcw)),
-            ],
+    final shown = pictures.take(_max).toList();
+    final extra = pictures.length - shown.length;
+    final count = shown.length + (extra > 0 ? 1 : 0);
+
+    Widget circle(Widget child) => Container(
+          width: _size,
+          height: _size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: c.surfaceAlt,
+            border: Border.all(color: c.surface, width: 2),
           ),
-          const SizedBox(height: FitSpace.lg),
-          Row(
-            children: [
-              _HeaderStat(label: 'الوقت', value: elapsed),
-              _HeaderStat(label: 'المجموعات', value: '$doneSets/$totalSets'),
-              _HeaderStat(label: 'الحجم', value: '${volume.round()}'),
-            ],
-          ),
-          const SizedBox(height: FitSpace.md),
-          FDeterminateProgress(value: totalSets == 0 ? 0 : doneSets / totalSets),
-          if (!started) ...[
-            const SizedBox(height: FitSpace.lg),
-            FButton(onPress: onStart, prefix: const Icon(FLucideIcons.play), child: const Text('ابدأ التمرين')),
-          ],
-        ],
-      ),
-    );
-  }
-}
+          child: ClipOval(child: child),
+        );
 
-class _HeaderStat extends StatelessWidget {
-  const _HeaderStat({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.fit;
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SizedBox(
+      width: _size + (count - 1) * _step,
+      height: _size,
+      child: Stack(
         children: [
-          Text(value, style: FitType.number.copyWith(fontSize: 22, color: c.foreground)),
-          Text(label, style: FitType.caption.copyWith(color: c.mutedForeground)),
-        ],
-      ),
-    );
-  }
-}
-
-class _ExerciseBlock extends StatelessWidget {
-  const _ExerciseBlock({
-    required this.exercise,
-    required this.onInfo,
-    required this.onToggle,
-    required this.onChanged,
-    required this.onAddSet,
-  });
-
-  final _DemoExercise exercise;
-  final VoidCallback onInfo;
-  final ValueChanged<_DemoSet> onToggle;
-  final VoidCallback onChanged;
-  final VoidCallback onAddSet;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.fit;
-    final ex = exercise;
-    return FitCard(
-      padding: const EdgeInsets.fromLTRB(FitSpace.sm, FitSpace.md, FitSpace.sm, FitSpace.xs),
-      borderColor: ex.complete ? c.success.withValues(alpha: 0.5) : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: FitSpace.sm),
-            child: Row(
-              children: [
-                FitIconChip(
-                  icon: ex.complete ? FLucideIcons.check : FLucideIcons.dumbbell,
-                  tone: ex.complete ? FitTone.success : FitTone.brand,
-                ),
-                const SizedBox(width: FitSpace.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(ex.name, style: FitType.bodyStrong.copyWith(color: c.foreground)),
-                      Text(
-                        '${ex.muscles} · الهدف ${ex.targetSets}×${ex.targetReps}',
-                        style: FitType.caption.copyWith(color: c.mutedForeground),
-                      ),
-                    ],
+          for (var i = 0; i < shown.length; i++)
+            PositionedDirectional(start: i * _step, child: circle(FitPicture(shown[i]))),
+          if (extra > 0)
+            PositionedDirectional(
+              start: shown.length * _step,
+              child: circle(
+                Center(
+                  child: Text(
+                    ltr('+$extra'),
+                    style: FitType.caption.copyWith(color: c.foreground, fontWeight: FontWeight.w800, fontSize: 10),
                   ),
                 ),
-                FitBadge(
-                  label: '${ex.doneCount}/${ex.sets.length}',
-                  tone: ex.complete ? FitTone.success : FitTone.neutral,
-                ),
-                const SizedBox(width: FitSpace.xs),
-                FButton.icon(
-                  variant: FButtonVariant.ghost,
-                  size: FButtonSizeVariant.sm,
-                  onPress: onInfo,
-                  child: const Icon(FLucideIcons.info),
-                ),
-              ],
+              ),
             ),
-          ),
-          const SizedBox(height: FitSpace.md),
-          const FitSetHeader(),
-          const SizedBox(height: FitSpace.xs),
-          for (var i = 0; i < ex.sets.length; i++)
-            FitSetRow(
-              index: i,
-              weight: ex.sets[i].weight,
-              reps: ex.sets[i].reps,
-              done: ex.sets[i].done,
-              onWeightChanged: (v) {
-                ex.sets[i].weight = v;
-                onChanged();
-              },
-              onRepsChanged: (v) {
-                ex.sets[i].reps = v;
-                onChanged();
-              },
-              onToggleDone: () => onToggle(ex.sets[i]),
-            ),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: FButton(
-              variant: FButtonVariant.ghost,
-              size: FButtonSizeVariant.sm,
-              mainAxisSize: MainAxisSize.min,
-              onPress: onAddSet,
-              prefix: const Icon(FLucideIcons.plus),
-              child: const Text('إضافة مجموعة'),
-            ),
-          ),
         ],
       ),
     );
